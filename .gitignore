@@ -4,3 +4,7 @@ publish/
 *.user
 .vs/
 out/
+
+# local working notes, never published
+CLAUDE.md
+.local/
