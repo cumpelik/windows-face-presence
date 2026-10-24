@@ -90,6 +90,15 @@ Zavření okna aplikaci jen schová do lišty. Okno vrátíte opětovným spušt
 - Windows blokují `SendInput`, když má fokus okno se zvýšenými oprávněními (UAC dotaz, aplikace spuštěná jako správce).
 - Model rozpoznání byl trénován na barevných fotkách. Na IR obrazu funguje dobře, když obličej naskenujete na stejné kameře,
   ale skóre jsou nižší než u barevné kamery.
+- Aplikace, které drží kameru otevřenou pořád (virtuální kamery, OBS, některé nástroje výrobců), nechávají Still Here
+  pozastavený stejně jako videohovor. V okně je vidět, o kterou aplikaci jde.
+- Jedno EXE si při startu rozbalí nativní knihovny do `%TEMP%\.net`. Kde AppLocker nebo WDAC zakazují spouštět kód
+  z dočasných složek (běžné na spravovaných počítačích), Still Here nenaběhne.
+- Bezpečnostní nástroje (EDR) mohou simulovaný vstup označit jako „mouse jiggler“, přestože se posílá jen po ověření
+  obličeje.
+- Dokud vás aplikace rozpoznává, chatovací aplikace jako Teams nebo Slack vás ukazují jako dostupného – Windows berou
+  simulovaný vstup jako aktivitu.
+- Automatické aktualizace nejsou. Novou verzi stáhněte jako `StillHere.exe` přes tu starou.
 
 ## Build
 

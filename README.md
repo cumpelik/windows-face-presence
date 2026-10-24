@@ -89,6 +89,15 @@ Closing the window only hides it to the tray. Run the EXE again or double-click 
 - `SendInput` is blocked by Windows when an elevated window (UAC prompt, admin app) has focus.
 - The recognition model was trained on color photos; on IR images it works well when you scan your face on the same camera,
   but the scores are lower than on a color camera.
+- Apps that keep a camera open all the time (virtual cameras, OBS, some vendor tools) keep Still Here paused, the same
+  way a video call does. The window shows which app it is.
+- The single EXE unpacks its native libraries to `%TEMP%\.net` on start. Where AppLocker or WDAC forbid running code
+  from temporary folders (common on managed PCs), Still Here cannot start.
+- Security tools (EDR) may report the simulated input as a "mouse jiggler", even though it is sent only after your face
+  was verified.
+- While you are recognized, chat apps such as Teams or Slack keep showing you as available – Windows sees the
+  simulated input as activity.
+- There are no automatic updates. To update, download the new `StillHere.exe` over the old one.
 
 ## Building
 
