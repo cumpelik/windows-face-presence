@@ -13,7 +13,7 @@ internal static class Program
         using var mutex = new Mutex(true, MutexName, out var createdNew);
         if (!createdNew)
         {
-            // Už běží – jen ji požádáme o zobrazení okna (funguje i když okno "zmizelo").
+            // Already running – just ask it to show its window (works even when the window got "lost").
             try
             {
                 using var signal = EventWaitHandle.OpenExisting(ShowEventName);

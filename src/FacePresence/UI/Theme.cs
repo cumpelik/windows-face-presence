@@ -1,6 +1,6 @@
 namespace FacePresence.UI;
 
-/// <summary>Barvy, fonty a tovární metody pro jednotný vzhled (světlé "karty" na šedém pozadí, indigo akcent).</summary>
+/// <summary>Colors, fonts and factory methods for a consistent look (light "cards" on a gray background, indigo accent).</summary>
 internal static class Theme
 {
     public static readonly Color Window = Color.FromArgb(243, 244, 246);
@@ -30,7 +30,7 @@ internal static class Theme
         return b;
     }
 
-    /// <summary>Přepne vzhled existujícího tlačítka mezi primárním (indigo) a sekundárním (bílým).</summary>
+    /// <summary>Switches an existing button between the primary (indigo) and secondary (white) look.</summary>
     public static void SetPrimary(Button b, bool primary)
     {
         b.BackColor = primary ? Accent : Card;
@@ -96,8 +96,8 @@ internal static class Theme
 }
 
 /// <summary>
-/// Kolečko myši nad NumericUpDown/ComboBox normálně mění hodnotu (i při pouhém rolování stránky).
-/// Tady ho předáme nejbližšímu rolovatelnému rodiči.
+/// The mouse wheel over a NumericUpDown/ComboBox normally changes its value (even when just scrolling the page).
+/// Here it is passed to the nearest scrollable parent instead.
 /// </summary>
 internal static class WheelGuard
 {
@@ -119,7 +119,7 @@ internal static class WheelGuard
     }
 }
 
-/// <summary>Bílá karta s nadpisem, 1px rámečkem a dvousloupcovou mřížkou popisek / ovládací prvek.</summary>
+/// <summary>White card with a title, a 1 px border and a two-column label / control grid.</summary>
 internal sealed class Card : TableLayoutPanel
 {
     private const int LabelColumnWidth = 230;
@@ -179,7 +179,7 @@ internal sealed class Card : TableLayoutPanel
         SetColumnSpan(control, 2);
     }
 
-    /// <summary>Label přes oba sloupce, jehož šířka se drží šířky karty (zalamuje se místo přetékání).</summary>
+    /// <summary>Label spanning both columns whose width follows the card width (wraps instead of overflowing).</summary>
     public void AddWrappingFull(Label lbl)
     {
         _hints.Add((lbl, true));
@@ -195,7 +195,7 @@ internal sealed class Card : TableLayoutPanel
 
     protected override void OnLayout(LayoutEventArgs e)
     {
-        // Label s AutoSize se jinak roztáhne na MaximumSize a karta přeteče sloupec – šířku nápověd vážeme na šířku karty.
+        // An AutoSize label would otherwise grow to its MaximumSize and the card would overflow the column – bind hint widths to the card width.
         var inner = Math.Max(120, ClientSize.Width - Padding.Horizontal);
         foreach (var (label, full) in _hints)
         {

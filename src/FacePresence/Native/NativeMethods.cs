@@ -80,7 +80,7 @@ internal static class NativeMethods
     [DllImport("user32.dll", SetLastError = true)]
     public static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
 
-    // ---- Power schemes (jen pro diagnostiku) ----
+    // ---- Power schemes (lock estimate and diagnostics) ----
     [DllImport("powrprof.dll")]
     public static extern uint PowerGetActiveScheme(IntPtr rootPowerKey, out IntPtr activePolicyGuid);
 

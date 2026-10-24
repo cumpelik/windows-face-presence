@@ -1,6 +1,6 @@
 namespace FacePresence;
 
-/// <summary>Jednoduchý log do %LOCALAPPDATA%\FacePresence\log.txt (s omezením velikosti).</summary>
+/// <summary>Simple size-limited log in %LOCALAPPDATA%\FacePresence\log.txt.</summary>
 internal static class Log
 {
     private static readonly object Sync = new();
@@ -22,7 +22,7 @@ internal static class Log
         }
         catch
         {
-            // log nesmí nikdy shodit aplikaci
+            // logging must never crash the app
         }
     }
 }

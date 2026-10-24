@@ -4,8 +4,8 @@ using Windows.Media.Capture.Frames;
 namespace FacePresence.Capture;
 
 /// <summary>
-/// Výčet kamer přes WinRT MediaFrameSourceGroup. Na rozdíl od DirectShow/OpenCV VideoCapture
-/// vidí i senzorové (IR) kamery Windows Hello (KSCATEGORY_SENSOR_CAMERA).
+/// Camera enumeration through WinRT MediaFrameSourceGroup. Unlike DirectShow / OpenCV VideoCapture it also
+/// sees the Windows Hello sensor (IR) cameras (KSCATEGORY_SENSOR_CAMERA).
 /// </summary>
 public static class CameraEnumerator
 {
@@ -28,7 +28,7 @@ public static class CameraEnumerator
             }
         }
 
-        // IR první, v rámci skupiny preferuj VideoPreview; duplicitní zdroje (preview+record) sloučit.
+        // IR first, prefer VideoPreview within a group; merge duplicate sources (preview + record).
         return result
             .OrderByDescending(c => c.IsInfrared)
             .ThenBy(c => c.DisplayName.Contains("VideoPreview") ? 0 : 1)

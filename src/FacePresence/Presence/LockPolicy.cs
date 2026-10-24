@@ -11,9 +11,9 @@ public sealed record LockRule(TimeSpan Timeout, string SourceKey)
 }
 
 /// <summary>
-/// Odhad, po jaké době nečinnosti se Windows zamknou: minimum z politiky InactivityTimeoutSecs, zabezpečeného spořiče,
-/// vypnutí displeje (jen u Modern Standby, kde vypnutí displeje = uspání) a uspání – vždy jen pokud je vyžadováno
-/// přihlášení po probuzení. Jen odhad pro UI; nic se nemění.
+/// Estimates after how much idle time Windows locks: the minimum of the InactivityTimeoutSecs policy, a secure screen
+/// saver, display off (Modern Standby only, where display off = sleep) and sleep – the last two only when sign-in is
+/// required on wake. An estimate for the UI only; nothing is changed.
 /// </summary>
 public static class LockPolicy
 {
@@ -71,7 +71,7 @@ public static class LockPolicy
         return rules.Count == 0 ? null : rules.MinBy(r => r.Timeout);
     }
 
-    /// <summary>Modern Standby (AoAc) – vypnutí displeje po nečinnosti je zároveň "uspání" a platí pro něj zámek po probuzení.</summary>
+    /// <summary>Modern Standby (AoAc) – turning the display off after idle is also "sleep", so the lock-on-wake setting applies.</summary>
     public static bool IsModernStandby()
     {
         try

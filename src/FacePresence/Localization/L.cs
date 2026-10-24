@@ -1,6 +1,6 @@
 namespace FacePresence.Localization;
 
-/// <summary>Texty UI. Výchozí angličtina, přepínač na češtinu v okně (Settings.Language).</summary>
+/// <summary>UI texts. English by default, Czech via the flag switch in the window (Settings.Language).</summary>
 public static class L
 {
     public static string Lang { get; private set; } = "en";
@@ -29,7 +29,7 @@ public static class L
 
     private static readonly Dictionary<string, (string en, string cs)> Table = new()
     {
-        // --- obecné / stavy ---
+        // --- general / states ---
         ["app"] = ("Face Presence", "Face Presence"),
         ["already_running"] = ("Face Presence is already running (see the tray icon).", "Face Presence už běží (ikona v systémové liště)."),
         ["state.present"] = ("You're here – lock is being deferred", "Jste tu – zamčení se odkládá"),
@@ -43,7 +43,7 @@ public static class L
         ["state.starting"] = ("Starting…", "Spouštím…"),
         ["state.stopped"] = ("Stopped", "Zastaveno"),
 
-        // --- statistiky v hlavičce ---
+        // --- header stats ---
         ["stat.score"] = ("Score / threshold", "Skóre / práh"),
         ["stat.idle"] = ("Idle", "Nečinnost"),
         ["stat.next"] = ("Next check", "Další kontrola"),
@@ -54,19 +54,12 @@ public static class L
         ["stat.lock_unknown"] = ("not detected", "nezjištěn"),
         ["stat.inputs_val"] = ("{0} (last {1})", "{0} (naposledy {1})"),
 
-        // --- chipy ---
-        ["chip.score"] = ("score {0:F2} / threshold {1:F2}", "skóre {0:F2} / práh {1:F2}"),
-        ["chip.idle"] = ("idle {0} s", "nečinnost {0} s"),
-        ["chip.next"] = ("next check in {0} s", "další kontrola za {0} s"),
-        ["chip.injections"] = ("simulated inputs {0}, last {1}", "simulovaných vstupů {0}, naposledy {1}"),
-        ["chip.lock"] = ("locks after {0} idle ({1})", "zámek po {0} nečinnosti ({1})"),
-        ["chip.lock_unknown"] = ("no lock timeout detected", "limit zamčení nezjištěn"),
         ["lock.policy"] = ("inactivity policy", "zásady nečinnosti"),
         ["lock.screensaver"] = ("secure screen saver", "zabezpečený spořič"),
         ["lock.display"] = ("display off", "vypnutí displeje"),
         ["lock.sleep"] = ("sleep", "uspání"),
 
-        // --- hlavička / tlačítka ---
+        // --- header / buttons ---
         ["btn.pause"] = ("Pause", "Pozastavit"),
         ["btn.resume"] = ("Resume", "Pokračovat"),
         ["btn.diagnostics"] = ("Diagnostics…", "Diagnostika…"),
@@ -79,11 +72,10 @@ public static class L
         ["btn.run"] = ("Run diagnostics", "Spustit diagnostiku"),
         ["btn.copy"] = ("Copy to clipboard", "Kopírovat do schránky"),
 
-        // --- karty ---
+        // --- cards ---
         ["card.camera"] = ("Camera", "Kamera"),
         ["card.enroll"] = ("Face enrollment", "Registrace obličeje"),
         ["card.presence"] = ("Presence check", "Kontrola přítomnosti"),
-        ["card.keepalive"] = ("Lock deferral", "Odkládání zamčení"),
         ["card.app"] = ("Application", "Aplikace"),
         ["hint.camera"] = ("The Windows Hello IR camera is preferred – it works in the dark. Enrollment is stored per camera.",
                            "IR kamera Windows Hello má přednost – funguje i potmě. Registrace se ukládá zvlášť pro každou kameru."),
@@ -91,20 +83,12 @@ public static class L
                            "Registrace nasbírá 10 vzorků (cca 5 s). Dívejte se do kamery a mírně otáčejte hlavou. Ukládá se zvlášť pro IR a barevnou kameru."),
         ["hint.threshold"] = ("Cosine similarity. Your own face should score clearly above the threshold, other people below it. Recommended 0.40–0.50.",
                               "Kosinová podobnost. Vlastní obličej má být zřetelně nad prahem, cizí pod ním. Doporučeno 0,40–0,50."),
-        ["hint.keepidle"] = ("Windows reset their idle counter only on keyboard/mouse input. When you really did nothing for this long and the camera has just verified you, the app sends one tiny simulated input (SendInput) so Windows see you as active. Must be shorter than the shortest lock timeout (usually 60 s).",
-                             "Windows nulují čítač nečinnosti jen při vstupu z klávesnice/myši. Když skutečně nic neděláte déle než tuto dobu a kamera vás právě ověřila, aplikace pošle jeden nepatrný simulovaný vstup (SendInput), aby vás Windows viděly jako aktivního. Musí být kratší než nejkratší limit zamykání (obvykle 60 s)."),
         ["hint.app"] = ("Closing the window only hides it to the tray. Only the real Windows lock is used, the app never unlocks and Win+L always works. On camera error, pause or exit Windows locks normally.",
                         "Zavření okna aplikaci jen skryje do lišty. Používá se výhradně skutečný zámek Windows, aplikace nikdy neodemyká a Win+L funguje vždy. Při chybě kamery, pauze nebo ukončení se Windows zamknou standardně."),
         ["lbl.present_interval"] = ("Check interval when present [s]", "Kontrola při přítomnosti [s]"),
         ["lbl.absent_interval"] = ("Check interval when absent [s]", "Kontrola při nepřítomnosti [s]"),
         ["lbl.threshold"] = ("Match threshold", "Práh shody"),
-        ["lbl.keepidle"] = ("Simulated input after idle [s]", "Simulovaný vstup po nečinnosti [s]"),
-        ["lbl.method"] = ("Simulation method", "Způsob simulace"),
-        ["lbl.language"] = ("Language", "Jazyk"),
-        ["chk.keepalive"] = ("Prevent automatic lock while I'm present", "Bránit automatickému zamčení, dokud jsem přítomen"),
         ["chk.autostart"] = ("Start after Windows sign-in (minimized to tray)", "Spouštět po přihlášení do Windows (minimalizovaně do lišty)"),
-        ["method.zero"] = ("Zero mouse move (cursor doesn't move)", "Nulový pohyb myši (kurzor se nehne)"),
-        ["method.jiggle"] = ("Move mouse 1 px and back", "Pohyb myši o 1 px a zpět"),
         ["enroll.status_ok"] = ("✓  Your face is enrolled – {0} camera, {1}, {2} samples", "✓  Obličej je registrován – kamera {0}, {1}, {2} vzorků"),
         ["enroll.status_none"] = ("No face enrolled yet – until you enroll, the app never defers the lock.", "Zatím nejste registrován – dokud se nezaregistrujete, aplikace zamčení neodkládá."),
         ["enroll.status_other"] = ("No enrollment for the current {0} camera (enrolled only for: {1}). Enroll again or switch the camera.", "Pro aktuální kameru ({0}) registrace chybí (registrováno jen pro: {1}). Zaregistrujte se znovu nebo přepněte kameru."),
@@ -112,18 +96,17 @@ public static class L
         ["kind.IR"] = ("IR", "IR"),
         ["kind.Color"] = ("color", "barevná"),
         ["date.format"] = ("MMM d, yyyy H:mm", "d. M. yyyy H:mm"),
-        ["templates.none"] = ("No face enrolled yet – without enrollment the app never defers the lock.", "Zatím není registrován žádný obličej – bez registrace aplikace zamčení neodkládá."),
-        ["templates.count"] = ("{0} samples enrolled (IR: {1}, color camera: {2}).", "Registrováno {0} vzorků (IR: {1}, barevná kamera: {2})."),
 
-        // --- dialogy ---
+        // --- dialogs ---
         ["dlg.enroll"] = ("Face enrollment", "Registrace obličeje"),
         ["dlg.clear_q"] = ("Delete all enrolled face samples?", "Smazat všechny registrované vzorky obličeje?"),
         ["dlg.autostart"] = ("Autostart", "Autostart"),
         ["dlg.about"] = ("About", "O aplikaci"),
-        ["about.text"] = ("Face Presence {0}\n\nRecognizes the enrolled user with the camera (Windows Hello IR or a webcam) and defers the automatic Windows lock while you sit at the computer.\n\nDetection: YuNet, recognition: SFace (OpenCV Zoo), everything runs offline.\nData: {1}",
-                          "Face Presence {0}\n\nLokální rozpoznání registrovaného uživatele kamerou (IR Windows Hello nebo webkamera) a odkládání automatického zamčení Windows, dokud sedíte u počítače.\n\nDetekce: YuNet, rozpoznání: SFace (OpenCV Zoo), vše běží offline.\nData: {1}"),
+        ["about.text"] = ("Face Presence {0}\n\nRecognizes the enrolled user with the camera (Windows Hello IR or a webcam) and defers the automatic Windows lock while you sit at the computer. Everything runs offline, nothing leaves your PC.\n\nFace detection: YuNet, recognition: SFace (OpenCV Zoo) via OpenCV / OpenCvSharp.\n\nCopyright (c) 2026 Michal Cumpelik, MIT License.\nhttps://github.com/cumpelik/windows-face-presence\n\nData: {1}\n\nShow licenses (MIT and third-party notices)?",
+                          "Face Presence {0}\n\nLokální rozpoznání registrovaného uživatele kamerou (IR Windows Hello nebo webkamera) a odkládání automatického zamčení Windows, dokud sedíte u počítače. Vše běží offline, nic neopouští váš počítač.\n\nDetekce obličeje: YuNet, rozpoznání: SFace (OpenCV Zoo) přes OpenCV / OpenCvSharp.\n\nCopyright (c) 2026 Michal Cumpelik, licence MIT.\nhttps://github.com/cumpelik/windows-face-presence\n\nData: {1}\n\nZobrazit licence (MIT a komponenty třetích stran)?"),
+        ["dlg.licenses"] = ("Licenses", "Licence"),
 
-        // --- patička ---
+        // --- footer ---
         ["footer.text"] = ("Built together with {0}  ·  Thanks to {1} for letting its people build utilities like this", "Vytvořeno ve spolupráci s {0}  ·  Díky {1}, že svým lidem umožňuje tvořit i takové utility"),
         ["footer.claude"] = ("Claude by Anthropic", "Claude od Anthropicu"),
         ["footer.tabidoo"] = ("tabidoo.cloud", "tabidoo.cloud"),
@@ -161,7 +144,7 @@ public static class L
         ["enroll.failed"] = ("Enrollment failed: {0}", "Registrace selhala: {0}"),
         ["host.no_camera"] = ("No camera found", "Nenalezena žádná kamera"),
 
-        // --- diagnostika ---
+        // --- diagnostics ---
         ["probe.title"] = ("Face Presence – diagnostics", "Face Presence – diagnostika"),
         ["probe.intro"] = ("Diagnostics verifies: (1) frames from the IR / color camera and face detection, (2) lock policies, (3) whether the keep-alive input resets the idle counter.\r\nDuring the test (about 10 s) look at the camera and do not move the mouse.\r\n",
                            "Diagnostika ověří: (1) obraz z IR / barevné kamery a detekci obličeje, (2) politiky zamykání, (3) zda udržovací vstup resetuje čítač nečinnosti.\r\nBěhem testu (cca 10 s) se dívejte do kamery a nehýbejte myší.\r\n"),

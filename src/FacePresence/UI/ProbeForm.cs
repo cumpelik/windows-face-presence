@@ -64,7 +64,7 @@ public sealed class ProbeForm : Form
         var camera = _host.Monitor.Camera;
         try
         {
-            if (wasRunning) await _host.StopAsync(); // uvolnit kameru pro test
+            if (wasRunning) await _host.StopAsync(); // release the camera for the test
             var progress = new Progress<string>(line => _output.AppendText(line + Environment.NewLine));
             var text = await Probe.RunAsync(_host, progress, _cts.Token);
             _output.Text = text.Replace("\n", "\r\n").Replace("\r\r\n", "\r\n")

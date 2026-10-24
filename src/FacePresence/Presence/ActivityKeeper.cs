@@ -7,19 +7,19 @@ namespace FacePresence.Presence;
 
 public enum KeepAliveMethod
 {
-    /// <summary>SendInput s relativním pohybem myši 0/0 – kurzor se nehne, systém ale vidí vstup.</summary>
+    /// <summary>SendInput with a relative mouse move of 0/0 – the cursor does not move, but the system sees input.</summary>
     ZeroMouseMove = 0,
-    /// <summary>Pohyb myši o 1 px a hned zpět (záloha, kdyby nulový pohyb nestačil).</summary>
+    /// <summary>Mouse move by 1 px and back (fallback in case the zero move is not enough).</summary>
     MouseJiggle = 1,
 }
 
 /// <summary>
-/// Drží Windows "vzhůru", dokud je uživatel přítomen:
-///  1) SetThreadExecutionState(ES_DISPLAY_REQUIRED) – brání vypnutí displeje / spořiči (bez simulace vstupu),
-///  2) minimální simulovaný vstup přes SendInput, ale jen když skutečná nečinnost (GetLastInputInfo)
-///     překročí práh – to je jediná cesta, jak obejít "Interactive logon: Machine inactivity limit",
-///     která měří pouze klávesnici/myš.
-/// Po Release()/Dispose() se vše vrátí do standardního chování Windows.
+/// Keeps Windows "awake" while the user is present:
+///  1) SetThreadExecutionState(ES_DISPLAY_REQUIRED) – prevents display off / screen saver (no simulated input),
+///  2) a minimal simulated input via SendInput, but only when the real idle time (GetLastInputInfo) exceeds
+///     the threshold – the only way to defer "Interactive logon: Machine inactivity limit", which counts
+///     keyboard/mouse input only.
+/// After Release()/Dispose() Windows behaves exactly as by default again.
 /// </summary>
 public sealed class ActivityKeeper : IDisposable
 {
@@ -33,7 +33,7 @@ public sealed class ActivityKeeper : IDisposable
 
     public ActivityKeeper()
     {
-        // ES_CONTINUOUS je vázané na vlákno – proto vlastní dlouhožijící vlákno.
+        // ES_CONTINUOUS is bound to the calling thread, hence a dedicated long-lived thread.
         _thread = new Thread(Loop) { IsBackground = true, Name = "ActivityKeeper" };
         _thread.Start();
     }
@@ -48,7 +48,7 @@ public sealed class ActivityKeeper : IDisposable
         SetThreadExecutionState(EXECUTION_STATE.ES_CONTINUOUS);
     }
 
-    /// <summary>Skutečná doba od posledního vstupu uživatele v této session.</summary>
+    /// <summary>Real time since the user's last input in this session.</summary>
     public static TimeSpan GetIdleTime()
     {
         var info = new LASTINPUTINFO { cbSize = (uint)Marshal.SizeOf<LASTINPUTINFO>() };
@@ -74,7 +74,7 @@ public sealed class ActivityKeeper : IDisposable
         });
     }
 
-    /// <summary>Pošle simulovaný vstup jen pokud skutečná nečinnost přesáhla práh. Vrací true, když vstup odeslal.</summary>
+    /// <summary>Sends simulated input only when the real idle time exceeds the threshold. Returns true when input was sent.</summary>
     public bool InjectIfIdle(TimeSpan threshold, KeepAliveMethod method)
     {
         if (GetIdleTime() < threshold) return false;

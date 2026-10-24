@@ -26,11 +26,11 @@ def face_layer(size, color=(255, 255, 255, 255), with_scan=True):
     layer = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     d = ImageDraw.Draw(layer)
     s = size
-    # hlava
+    # head
     hr = s * 0.17
     hc = (s * 0.5, s * 0.40)
     d.ellipse((hc[0] - hr, hc[1] - hr, hc[0] + hr, hc[1] + hr), fill=color)
-    # ramena (elipsa oříznutá spodkem squircle)
+    # shoulders (ellipse clipped by the squircle)
     sw, sh = s * 0.33, s * 0.30
     sc = (s * 0.5, s * 0.92)
     shoulders = Image.new("L", (s, s), 0)
@@ -39,7 +39,7 @@ def face_layer(size, color=(255, 255, 255, 255), with_scan=True):
     body = Image.new("RGBA", (s, s), color)
     layer.paste(body, (0, 0), shoulders)
     if with_scan:
-        # rohové "scan" závorky
+        # corner "scan" brackets
         t = s * 0.045
         L = s * 0.16
         pad = s * 0.14
@@ -58,14 +58,14 @@ def build(bg_rgb_or_pair, dot=None, with_scan=True):
     mask = squircle_mask(s)
     base = Image.new("RGBA", (s, s), (0, 0, 0, 0))
     base.paste(bg, (0, 0), mask)
-    # jemný vnitřní lesk nahoře
+    # subtle gloss at the top
     gloss = Image.new("RGBA", (s, s), (0, 0, 0, 0))
     gd = ImageDraw.Draw(gloss)
     gd.ellipse((-s * 0.3, -s * 0.7, s * 1.3, s * 0.5), fill=(255, 255, 255, 26))
     gloss = gloss.filter(ImageFilter.GaussianBlur(s * 0.06))
     gloss = Image.composite(gloss, Image.new("RGBA", (s, s), (0, 0, 0, 0)), mask)
     base = Image.alpha_composite(base, gloss)
-    # stín silhouety
+    # silhouette shadow
     face = face_layer(s, with_scan=with_scan)
     shadow = face_layer(s, color=(0, 0, 0, 90), with_scan=False).filter(ImageFilter.GaussianBlur(s * 0.02))
     shadow = Image.composite(shadow, Image.new("RGBA", (s, s), (0, 0, 0, 0)), mask)
@@ -100,7 +100,7 @@ for name, color in states.items():
     save_ico(ico, f"{OUT}/tray_{name}.ico", [48, 40, 32, 24, 20, 16])
     ico.resize((32, 32), Image.LANCZOS).save(f"{OUT}/tray_{name}-32.png")
 
-# náhled: velká + malé velikosti
+# preview sheet: large + small sizes
 sheet = Image.new("RGBA", (256 + 20 + 6 * 70, 256), (235, 235, 240, 255))
 sheet.paste(app.resize((256, 256), Image.LANCZOS), (0, 0), app.resize((256, 256), Image.LANCZOS))
 x = 276
@@ -119,7 +119,7 @@ sheet.save(f"{OUT}/preview.png")
 print("ok")
 
 
-# ---- vlajky pro přepínač jazyka (3:2, kreslené 4x a zmenšené) ----
+# ---- flags for the language switch (3:2, drawn at 4x and downscaled) ----
 def flag_cs(w, h):
     im = Image.new("RGBA", (w, h), (255, 255, 255, 255))
     d = ImageDraw.Draw(im)

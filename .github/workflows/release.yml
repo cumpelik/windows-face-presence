@@ -1,9 +1,9 @@
 name: Release
 
-# Tag v1.2.3 -> podepsané FacePresence-1.2.3-win-x64.exe jako GitHub Release.
-# Secrets (Settings -> Secrets and variables -> Actions): ARTIFACT_SIGNING_ENDPOINT, ARTIFACT_SIGNING_ACCOUNT,
-# ARTIFACT_SIGNING_PROFILE, AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET (stejné hodnoty jako v Azure DevOps
-# variable group pro BsonJet). Bez nich se release vytvoří nepodepsaný.
+# Tag v1.2.3 -> FacePresence-1.2.3-win-x64.exe as a GitHub Release.
+# Optional signing secrets (Settings -> Secrets and variables -> Actions): ARTIFACT_SIGNING_ENDPOINT,
+# ARTIFACT_SIGNING_ACCOUNT, ARTIFACT_SIGNING_PROFILE, AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET.
+# Without them the release is unsigned.
 on:
   push:
     tags: ['v*']
@@ -38,4 +38,6 @@ jobs:
           files: |
             out/FacePresence-*.exe
             out/FacePresence-*.exe.sha256
+            LICENSE
+            THIRD-PARTY-NOTICES.txt
           generate_release_notes: true

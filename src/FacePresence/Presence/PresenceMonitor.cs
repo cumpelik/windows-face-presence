@@ -33,9 +33,9 @@ public sealed record StatusSnapshot(
 public sealed record EnrollResult(bool Success, string Message);
 
 /// <summary>
-/// Hlavní smyčka: snímek -> detekce/rozpoznání -> (ne)udržovat aktivitu -> adaptivní čekání.
-/// Rozpoznán: další kontrola za PresentIntervalSec, jinak za AbsentIntervalSec (obě nastavitelné).
-/// Při zamčené session nebo pauze kameru uvolní (Windows Hello ji na lock screenu potřebuje).
+/// Main loop: frame -> detection/recognition -> keep (or stop keeping) the session active -> adaptive wait.
+/// Recognized: next check after PresentIntervalSec, otherwise after AbsentIntervalSec (both configurable).
+/// When the session is locked or paused the camera is released (Windows Hello needs it on the lock screen).
 /// </summary>
 public sealed class PresenceMonitor : IDisposable
 {
@@ -57,7 +57,7 @@ public sealed class PresenceMonitor : IDisposable
     private volatile EnrollJob? _enroll;
 
     public event Action<StatusSnapshot>? StatusChanged;
-    /// <summary>Snímek po analýze (vlákno smyčky). Mat platí jen po dobu volání.</summary>
+    /// <summary>Frame after analysis (raised on the loop thread). The Mat is valid only during the call.</summary>
     public event Action<Mat, FaceResult?, double?>? FrameAnalyzed;
 
     public StatusSnapshot Status { get; private set; } =
@@ -150,7 +150,7 @@ public sealed class PresenceMonitor : IDisposable
                     catch (OperationCanceledException) { throw; }
                     catch (Exception ex)
                     {
-                        Log.Write("Otevření kamery selhalo: " + ex.Message);
+                        Log.Write("Opening the camera failed: " + ex.Message);
                         _keeper.SetPresent(false);
                         Publish(PresenceState.CameraError, L.T("mon.camera_error", ex.Message));
                         await Task.Delay(5000, ct);
@@ -196,7 +196,7 @@ public sealed class PresenceMonitor : IDisposable
                     try { face = _engine.Analyze(frame); }
                     catch (Exception ex) { Log.Write("Analyze selhal: " + ex.Message); }
 
-                    // Šablony se porovnávají jen se vzorky z téhož typu kamery (IR vs. barevná) – jinak je skóre nesmyslné.
+                    // Compare only with samples from the same camera type (IR vs. color) – otherwise the score is meaningless.
                     var templates = settings.Templates.Where(t => t.CameraKind == camera.Kind).ToList();
                     double? score = face != null && templates.Count > 0
                         ? templates.Max(t => FaceEngine.Cosine(t.Feature, face.Feature))
@@ -218,7 +218,7 @@ public sealed class PresenceMonitor : IDisposable
                     delay = TimeSpan.FromSeconds(Math.Max(0.2, interval));
                     if (present && settings.KeepAliveEnabled)
                     {
-                        // Probudit se dřív, pokud by jinak skutečná nečinnost přerostla práh (vstup se posílá vždy až po novém ověření obličeje).
+                        // Wake up earlier if the real idle time would otherwise exceed the threshold (input is only ever sent after a fresh face check).
                         var untilInject = idleThreshold - ActivityKeeper.GetIdleTime();
                         if (untilInject < delay)
                             delay = untilInject < TimeSpan.FromMilliseconds(500) ? TimeSpan.FromMilliseconds(500) : untilInject;
@@ -238,11 +238,11 @@ public sealed class PresenceMonitor : IDisposable
         }
         catch (OperationCanceledException)
         {
-            // normální ukončení
+            // normal shutdown
         }
         catch (Exception ex)
         {
-            Log.Write("Smyčka sledování spadla: " + ex);
+            Log.Write("Monitoring loop crashed: " + ex);
             Publish(PresenceState.CameraError, L.T("mon.camera_error", ex.Message));
         }
         finally
@@ -255,7 +255,7 @@ public sealed class PresenceMonitor : IDisposable
         }
     }
 
-    /// <summary>Práh nečinnosti pro simulovaný vstup: nastavená hodnota, ale nejvýš 60 % zjištěného limitu zámku.</summary>
+    /// <summary>Idle threshold for simulated input: the configured value, but at most 60 % of the detected lock timeout.</summary>
     private static TimeSpan EffectiveIdleThreshold(AppSettings settings)
     {
         var threshold = TimeSpan.FromSeconds(settings.KeepAliveIdleSec);
@@ -316,7 +316,7 @@ public sealed class PresenceMonitor : IDisposable
             kept.AddRange(features.Select(f => new FaceTemplate { CameraKind = kind, Feature = f, Created = DateTime.Now }));
             settings.Templates = kept;
             settings.Save();
-            Log.Write($"Registrace: {features.Count} vzorků ({kind}), min. vzájemná podobnost {minSim:F3}");
+            Log.Write($"Enrollment: {features.Count} samples ({kind}), min. mutual similarity {minSim:F3}");
             job.Tcs.TrySetResult(new EnrollResult(true,
                 L.T("enroll.saved", features.Count, kind, minSim) + (minSim < 0.5 ? L.T("enroll.low") : ".")));
         }

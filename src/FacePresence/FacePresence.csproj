@@ -14,7 +14,7 @@
     <Version>0.1.0</Version>
     <InvariantGlobalization>true</InvariantGlobalization>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
-    <!-- umožní build i na Linux/macOS (bez spuštění) -->
+    <!-- allows building on Linux/macOS too (running requires Windows) -->
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <!-- single-file publish: dotnet publish -c Release -r win-x64 -->
     <PublishSingleFile>true</PublishSingleFile>
@@ -23,7 +23,10 @@
     <ApplicationIcon>Assets\FacePresence.ico</ApplicationIcon>
     <Product>Face Presence</Product>
     <Description>Keeps Windows unlocked while the enrolled user is in front of the camera; locks normally otherwise.</Description>
-    <Copyright>MIT</Copyright>
+    <Authors>Michal Cumpelik</Authors>
+    <Copyright>Copyright (c) 2026 Michal Cumpelik. MIT License.</Copyright>
+    <PackageProjectUrl>https://github.com/cumpelik/windows-face-presence</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/cumpelik/windows-face-presence</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
@@ -38,7 +41,20 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Modely z OpenCV Zoo: YuNet (detekce, MIT) a SFace (embedding, Apache-2.0) -->
+    <EmbeddedResource Include="..\..\LICENSE" LogicalName="LICENSE.txt" />
+    <EmbeddedResource Include="..\..\THIRD-PARTY-NOTICES.txt" LogicalName="THIRD-PARTY-NOTICES.txt" />
+  </ItemGroup>
+
+  <!-- OpenCvSharp4.runtime.win ships the FFmpeg plugin (LGPL, 28 MB). Video I/O is not used, so it is excluded. -->
+  <Target Name="ExcludeOpenCvFfmpeg" AfterTargets="ResolvePackageAssets">
+    <ItemGroup>
+      <NativeCopyLocalItems Remove="@(NativeCopyLocalItems)" Condition="$([System.String]::Copy('%(Filename)').StartsWith('opencv_videoio_ffmpeg'))" />
+      <RuntimeTargetsCopyLocalItems Remove="@(RuntimeTargetsCopyLocalItems)" Condition="$([System.String]::Copy('%(Filename)').StartsWith('opencv_videoio_ffmpeg'))" />
+    </ItemGroup>
+  </Target>
+
+  <ItemGroup>
+    <!-- Models from the OpenCV Zoo: YuNet (detection, MIT) and SFace (embedding, Apache-2.0) -->
     <EmbeddedResource Include="Models\face_detection_yunet_2023mar.onnx" LogicalName="yunet.onnx" />
     <EmbeddedResource Include="Models\face_recognition_sface_2021dec.onnx" LogicalName="sface.onnx" />
   </ItemGroup>

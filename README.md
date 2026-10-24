@@ -1,133 +1,110 @@
-# Face Presence (POC)
+<p align="center"><img src="docs/icon.png" width="96" alt="Face Presence icon"></p>
 
-Malá Windows 11 aplikace (C# / .NET 8, WinForms) v systémové liště, která kamerou rozpoznává **konkrétního
-registrovaného uživatele** a dokud sedí před počítačem, odkládá automatické zamčení Windows kvůli nečinnosti.
-Rozpoznávání běží jen lokálně. Zadání je v [docs/zadani.md](docs/zadani.md).
+<h1 align="center">Face Presence</h1>
 
-> **Stav:** kód je kompletní a přeložený (build i single-file publish prošly), ale vznikl na Linuxu bez možnosti
-> spustit ho na Windows. První krok na cílovém stroji je tlačítko **Diagnostika…**, které oba kritické body
-> ověří přímo na vašem hardwaru (viz níže).
+<p align="center">
+Keeps Windows unlocked while <b>you</b> sit in front of the camera, and lets it lock normally when you leave.<br>
+Local face recognition, Windows Hello IR camera supported, one EXE, no cloud.
+</p>
 
-## Ověření kritických bodů
+<p align="center"><a href="README.cs.md">Česky</a></p>
 
-### 1) Obraz z IR kamery Windows Hello – ANO, přes WinRT
+---
 
-- IR kamera Windows Hello je v systému vedená jako *senzorová kamera* (`KSCATEGORY_SENSOR_CAMERA`). **DirectShow ani
-  OpenCV `VideoCapture` ji nevidí** (OBS/VLC ji ukazují černou). Přístupná je přes WinRT
-  `Windows.Media.Capture.Frames`: `MediaFrameSourceGroup.FindAllAsync()` vrací zdroje s
-  `SourceKind == Infrared`, `MediaCapture` + `MediaFrameReader` z nich čte snímky (typicky L8/L16/NV12,
-  ~340×340 až 640×360, grayscale). Funguje to v běžné desktop aplikaci (.NET 8 s TFM
-  `net8.0-windows10.0.19041.0`), žádný UWP balíček není potřeba. Existují hotové prohlížeče postavené přesně na tom
-  (IRCameraView, windows-ir-camera-viewer).
-- IR snímky se střídají **osvětlené / neosvětlené** (IR přísvit bliká). Aplikace čte
-  `InfraredMediaFrame.IsIlluminated` a pro rozpoznání používá osvětlené snímky.
-- Omezení:
-  - **Windows Hello potřebuje tu samou kameru na zamykací obrazovce.** Aplikace proto při `SessionLock`
-    kameru okamžitě uvolní a po odemčení ji znovu otevře (jinak by mohlo selhat přihlášení obličejem).
-  - Musí být povolen přístup aplikací ke kameře (Nastavení → Soukromí → Kamera). Některé OEM ovladače IR kameru
-    třetím stranám neexponují – pak Diagnostika žádný `Infrared` zdroj nenajde a použije se barevná kamera.
-  - IR přísvit je u některých notebooků viditelný jako slabé červené blikání; aplikace proto při přítomnosti
-    kontroluje jen jednou za 10 s (kamera ale zůstává otevřená, aby se LED/inicializace nestřídaly).
-  - Model rozpoznávání (SFace) je trénovaný na barevných fotkách. Na IR funguje v režimu „registrace i ověření
-    na stejné kameře“, přesnost je ale nižší než na barevné kameře – proto je práh shody nastavitelný a UI ukazuje
-    aktuální skóre. Šablony se ukládají zvlášť pro IR a barevnou kameru.
+## Why
 
-### 2) Zabránění skutečnému automatickému zamčení – ANO, ale jen simulovaným vstupem
+Short idle lock timeouts are good security, but annoying when you are reading, thinking or on a call without touching
+the keyboard. "Mouse jiggler" tools fix the annoyance by removing the security: the PC stays unlocked even when you walk
+away. Face Presence defers the lock **only while it recognizes your face**. When you leave, Windows locks exactly as
+configured.
 
-Windows zamyká session kvůli nečinnosti třemi cestami, které měří různé věci:
+## Features
 
-| Mechanismus | Co měří | Stačí `SetThreadExecutionState`? |
-|---|---|---|
-| Spořič se „Po obnovení zobrazit přihlašovací obrazovku“ | čas od posledního vstupu | ano (ES_DISPLAY_REQUIRED) |
-| Vypnutí displeje / uspání + „Vyžadovat přihlášení po probuzení“ | display idle timer | ano (ES_DISPLAY_REQUIRED) |
-| **GPO/Intune „Interactive logon: Machine inactivity limit“** (`InactivityTimeoutSecs`) | **jen klávesnice/myš** | **ne** – přehrávání videa ani power requesty ji neovlivní |
+- **Recognizes you, not just any face.** You enroll once; other people in front of the camera do not keep the PC unlocked.
+- **Windows Hello IR camera preferred.** Works in the dark and is harder to fool with a picture on a screen. A regular
+  webcam is used when no IR camera is available.
+- **Runs locally.** Face detection (YuNet) and recognition (SFace) run on your CPU via OpenCV. Nothing is uploaded.
+- **Adaptive checks.** Every 10 s while you are recognized, every 1 s while you are not (both configurable).
+- **Uses the real Windows lock.** No custom lock screen, never unlocks anything, Win+L always works.
+- **Shows when Windows would lock** – it reads the inactivity policy, secure screen saver, display-off and sleep
+  settings and counts down while you are away.
+- Tray icon with state colors, live preview with match score, built-in diagnostics, English and Czech UI, start
+  after sign-in.
 
-Firemní stroje mají typicky právě poslední politiku. Jediný způsob, jak ji „nevypnout a přesto nezamknout“, je
-aby systém **viděl vstup**. Aplikace proto:
+## How it works
 
-1. Při přítomnosti drží `SetThreadExecutionState(ES_CONTINUOUS | ES_DISPLAY_REQUIRED)` (bez simulace vstupu).
-2. Čte **skutečnou** nečinnost přes `GetLastInputInfo` a **pouze** když přesáhne práh (výchozí 40 s, musí být
-   pod nejkratším limitem – politiky mají minimum 60 s), pošle jeden `SendInput` s relativním pohybem myši
-   **0/0** (kurzor se nehne, čítač nečinnosti se resetuje). Když uživatel normálně pracuje, nic se neposílá.
-   Vstup se posílá vždy až **po čerstvém rozpoznání obličeje** – smyčka se kvůli tomu probudí dřív, než
-   by nečinnost přerostla práh.
-3. Při odchodu, chybě kamery, pauze, zamčení nebo ukončení všechno uvolní → Windows zamknou standardně.
+1. A camera frame is grabbed through the WinRT `MediaFrameReader` (the only API that exposes the Windows Hello IR
+   camera; DirectShow / OpenCV `VideoCapture` cannot see it). For IR cameras only illuminated frames are used.
+2. YuNet finds the largest face, the face is aligned to 112×112 and SFace turns it into a 128-dimensional embedding.
+3. The embedding is compared (cosine similarity) with your enrolled samples from the same camera.
+4. While you are recognized the app:
+   - holds `SetThreadExecutionState(ES_DISPLAY_REQUIRED)` – keeps the display on and prevents sleep, and
+   - reads the real idle time with `GetLastInputInfo`; only when you have not touched the keyboard or mouse for a while
+     (40 s by default, at most 60 % of the detected lock timeout) **and** your face was just verified, it sends a single
+     zero-distance mouse move with `SendInput`. The cursor does not move, but Windows counts it as activity. This is the
+     only way to defer the *Interactive logon: Machine inactivity limit* policy, which ignores everything except input.
+5. When you leave, the camera fails, you pause the app, the session locks or the app exits, all of this stops and
+   Windows locks on its own schedule. On lock the camera is released so Windows Hello can use it.
 
-Bezpečnostní vlastnosti: používá se jen skutečný Windows lock, aplikace nic neodemyká (simulovaný vstup z uživatelské
-session se na zamčenou plochu Winlogon ani nedostane), Win+L funguje vždy, žádná politika ani registr se nemění
-(zapisuje se jen `HKCU\...\Run` pro autostart a vlastní nastavení v `%LOCALAPPDATA%\FacePresence`).
+## Requirements
 
-Známá omezení:
-- **Dynamic Lock** (Bluetooth telefon) zamyká nezávisle na nečinnosti – neřešíme, Diagnostika na něj upozorní.
-- Nástroje třetích stran (DLP, „idle lock“ agenti), které si měří nečinnost po svém, mohou zamknout i tak.
-- `SendInput` je blokován UIPI, když má fokus okno s vyšší integritou (UAC dialog, admin aplikace) – záznam v logu.
-- Firemní monitoring může simulovaný vstup klasifikovat jako „mouse jiggler“; proto je ho minimum a je vypínatelný.
-- Diagnostika obsahuje test, zda nulový pohyb na daném systému resetuje `GetLastInputInfo`; pokud ne, je k dispozici
-  záložní metoda (pohyb o 1 px a zpět).
+- Windows 11 or Windows 10 (version 2004 / build 19041 or newer), x64
+- [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) (Windows offers it on first start if missing)
+- A camera; a Windows Hello IR camera is recommended
+- Camera access for desktop apps allowed in *Settings → Privacy & security → Camera*
 
-## Jak to funguje (architektura)
+## Getting started
 
-```
-src/FacePresence/
-  Program.cs                 single-instance, --minimized, globální log výjimek
-  App/TrayContext.cs         NotifyIcon, menu, SessionSwitch (lock/unlock), ukončení
-  App/AppHost.cs             sdílené objekty + výběr/restart kamery
-  Capture/CameraEnumerator   WinRT výčet kamer (IR první)
-  Capture/FrameGrabber       MediaCapture + MediaFrameReader, osvětlené IR snímky, SoftwareBitmap → Mat
-  Recognition/FaceEngine     YuNet (detekce) + SFace (128D embedding) přes OpenCV DNN, kosinová podobnost
-  Presence/PresenceMonitor   smyčka: snímek → rozpoznání → keep-alive → adaptivní čekání; registrace obličeje
-  Presence/ActivityKeeper    GetLastInputInfo, SetThreadExecutionState, minimální SendInput
-  Settings/                  settings.json (intervaly, práh, šablony), autostart v HKCU\Run
-  UI/MainForm, ProbeForm     stav, náhled, nastavení, registrace, diagnostika
-  Diagnostics/Probe          ověření IR kamery, lock politik a keep-alive na cílovém stroji
-  Models/*.onnx              vestavěné modely (YuNet 230 kB – MIT, SFace 37 MB – Apache 2.0, OpenCV Zoo)
-```
+1. Download `FacePresence-<version>-win-x64.exe` from [Releases](../../releases) and run it. It is a single file, no
+   installation. The first start takes a few seconds while it unpacks.
+2. The IR camera is selected automatically when present. Click **Enroll face** and look at the camera for about 5 s.
+3. Watch the score in the preview: your face should be clearly above the threshold (0.40 by default). If someone
+   else gets close to it, raise the threshold to 0.45–0.50.
+4. Optionally tick **Start after Windows sign-in**.
+5. **Diagnostics…** verifies on your machine that the IR camera delivers frames, that the simulated input resets the
+   idle timer, and which lock policies apply.
 
-UI je anglicky (výchozí) s přepínačem na češtinu v kartě Aplikace (`Localization/L.cs`, jedna tabulka klíčů).
-Hlavička ukazuje odhad „Windows se zamknou za …“ – `Presence/LockPolicy.cs` vezme minimum z politiky
-`InactivityTimeoutSecs`, zabezpečeného spořiče, vypnutí displeje (jen na Modern Standby, kde vypnutí displeje = uspání)
-a uspání, vždy jen pokud je zapnuté „Vyžadovat přihlášení po probuzení“, a odečte skutečnou nečinnost. Je to odhad
-pro orientaci, nic se nemění.
+Closing the window only hides it to the tray. Run the EXE again or double-click the tray icon to bring it back.
 
-Smyčka: rozpoznán → další kontrola za `PresentIntervalSec` (10 s), jinak za `AbsentIntervalSec` (1 s). Registrace
-nasbírá 10 vzorků (cca 5 s), uloží je jako šablony dané kamery (IR/Color); shoda = max. kosinová podobnost
-ke všem šablonám ≥ práh (výchozí 0,40; SFace na LFW doporučuje 0,363).
+## Security and privacy
 
-## Build a distribuce
+- Face Presence never changes system security policies and never unlocks Windows. It can only *defer* an automatic
+  idle lock while you are recognized.
+- **There is no liveness detection.** A good enough image of your face in front of the camera can keep the PC
+  unlocked. The IR camera makes this harder, not impossible. Do not use Face Presence where that risk is not acceptable.
+- Your enrollment is stored as numeric face embeddings (no photos) in `%LOCALAPPDATA%\FacePresence\settings.json`,
+  unencrypted, readable by your Windows account. Nothing is sent anywhere.
+- On managed devices the idle lock is usually a company policy. Make sure your organization allows tools like this.
 
-Požadavky: .NET 8 SDK (build jde i na Linuxu díky `EnableWindowsTargeting`), na cílovém PC Windows 10 19041+ /
-Windows 11 a .NET 8 Desktop Runtime (nebo build s `-SelfContained`).
+## Known limitations
+
+- *Dynamic Lock* (lock when your Bluetooth phone leaves) and third-party idle-lock agents work independently and are
+  not deferred.
+- `SendInput` is blocked by Windows when an elevated window (UAC prompt, admin app) has focus.
+- The recognition model was trained on color photos; on IR images it works well when you enroll on the same camera,
+  but the scores are lower than on a color camera.
+
+## Building
 
 ```
 dotnet build src/FacePresence/FacePresence.csproj -c Release
-publish.cmd 0.1.0        # = pwsh build/windows/build.ps1 -Version 0.1.0  ->  out\FacePresence-0.1.0-win-x64.exe
+pwsh build/windows/build.ps1 -Version 0.1.0     # -> out/FacePresence-0.1.0-win-x64.exe
 ```
 
-Výsledek je jedno EXE (~160 MB – většinu tvoří nativní OpenCV; při prvním spuštění se rozbalí do `%TEMP%\.net`).
-Data aplikace: `%LOCALAPPDATA%\FacePresence\` (`settings.json`, `log.txt`, `probe.txt`, `models\`, vzorky
-`probe_IR.png` / `probe_Color.png`).
+The build also works on Linux/macOS (`EnableWindowsTargeting`), running requires Windows. `build.ps1` signs the EXE
+with Azure Artifact Signing when the `ARTIFACT_SIGNING_*` and `AZURE_*` environment variables are set; without them the
+EXE is unsigned. GitHub Actions build every push (`build.yml`) and publish a release for every `v*` tag (`release.yml`).
 
-### Podepisování a release
+Project layout: `Capture/` camera access, `Recognition/` face engine, `Presence/` monitoring loop, idle handling and
+lock policy detection, `UI/` WinForms windows, `Localization/` texts, `Diagnostics/` the self-test.
 
-`build/windows/build.ps1` podepíše EXE přes **Azure Artifact Signing** (Trusted Signing), když jsou nastavené proměnné
-`ARTIFACT_SIGNING_ENDPOINT`, `ARTIFACT_SIGNING_ACCOUNT`, `ARTIFACT_SIGNING_PROFILE`, `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`,
-`AZURE_CLIENT_SECRET` – stejná sada jako u BsonJet. SignTool i plugin se stáhnou z NuGet, na stroji nemusí být nic
-nainstalované. Podpis se časově razítkuje a ověří (`Get-AuthenticodeSignature`), vedle EXE vzniká `.sha256`.
+## License
 
-GitHub: `.github/workflows/build.yml` staví nepodepsaně při každém push/PR, `release.yml` při tagu `v*` postaví,
-podepíše (secrets se stejnými jmény) a vytvoří GitHub Release s EXE. Podepsané je jen vnější single-file EXE;
-nativní knihovny OpenCV rozbalené do `%TEMP%` zůstávají s původním podpisem (resp. bez něj), což stačí pro SmartScreen
-a Defender, ne pro Smart App Control – tam by byl potřeba instalátor s podepsanými DLL jako u BsonJet.
+MIT – see [LICENSE](LICENSE). Bundled components (OpenCV, OpenCvSharp, the YuNet and SFace models and the libraries
+statically linked into OpenCV) keep their own licenses, listed with full texts in
+[THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt) and in the app under *About*.
 
-## Postup ověření na Windows (testovací plán)
+## Acknowledgements
 
-1. Spustit `FacePresence.exe`, otevřít **Diagnostika… → Spustit diagnostiku**, dívat se do kamery a nehýbat myší.
-   Výstup říká: zda existuje `Infrared` zdroj a dá se z něj číst (+ zda je v něm detekován obličej), jaké lock
-   politiky platí (`InactivityTimeoutSecs`, spořič, vypnutí displeje, Dynamic Lock) a zda udržovací vstup resetuje
-   čítač nečinnosti.
-2. Vybrat kameru (IR je předvybraná), kliknout **Registrovat obličej**.
-3. Sledovat skóre v náhledu: vlastní obličej by měl být výrazně nad prahem, cizí pod ním; případně práh doladit.
-4. Test zamykání: nastavit krátký limit (např. spořič 1 min se zabezpečením, nebo na firemním stroji ponechat
-   politiku), sedět před PC bez dotyku klávesnice – nesmí se zamknout; odejít – musí se zamknout po standardním
-   timeoutu. Win+L musí fungovat kdykoliv. Po zamčení a odemčení přes Windows Hello se musí sledování obnovit.
-5. Ukončit aplikaci z lišty → stroj se musí zamknout standardně.
+Built together with [Claude](https://claude.ai) by Anthropic. Thanks to [tabidoo.cloud](https://tabidoo.cloud) for
+letting its people build utilities like this.

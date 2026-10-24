@@ -1,10 +1,11 @@
-# Sestaví FacePresence-<version>-win-x64.exe (single-file, framework-dependent) a volitelně ho podepíše
-# Azure Artifact Signing (Trusted Signing) – stejný postup a stejné proměnné jako BsonJet (TbdMongoClient/build):
-#   ARTIFACT_SIGNING_ENDPOINT   endpoint regionu účtu, např. https://weu.codesigning.azure.net
-#   ARTIFACT_SIGNING_ACCOUNT    název signing účtu
-#   ARTIFACT_SIGNING_PROFILE    certificate profile
-#   AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET   app registration s rolí Artifact Signing Certificate Profile Signer
-# Bez ARTIFACT_SIGNING_ACCOUNT se nic nepodepisuje (lokální build).
+# Builds out/FacePresence-<version>-win-x64.exe (single-file, framework-dependent) and optionally signs it with
+# Azure Artifact Signing (Trusted Signing). Signing is enabled by these environment variables:
+#   ARTIFACT_SIGNING_ENDPOINT   endpoint of the account's region, e.g. https://weu.codesigning.azure.net
+#   ARTIFACT_SIGNING_ACCOUNT    signing account name
+#   ARTIFACT_SIGNING_PROFILE    certificate profile name
+#   AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET   app registration with the role
+#                               "Artifact Signing Certificate Profile Signer"
+# Without ARTIFACT_SIGNING_ACCOUNT nothing is signed (local build).
 param(
     [Parameter(Mandatory)] [string] $Version,
     [switch] $SelfContained
@@ -18,7 +19,7 @@ $target = Join-Path $out "FacePresence-$Version-win-x64.exe"
 
 function Setting([string] $name) {
     $value = [Environment]::GetEnvironmentVariable($name)
-    if ([string]::IsNullOrWhiteSpace($value) -or $value -like '$(*)') { return $null }  # nedefinovaná pipeline proměnná přijde jako "$(Name)"
+    if ([string]::IsNullOrWhiteSpace($value) -or $value -like '$(*)') { return $null }  # an undefined pipeline variable arrives as "$(Name)"
     return $value
 }
 
@@ -53,7 +54,7 @@ if (Setting 'ARTIFACT_SIGNING_ACCOUNT') {
         CertificateProfileName = Setting 'ARTIFACT_SIGNING_PROFILE'
         ExcludeCredentials = @('ManagedIdentityCredential', 'WorkloadIdentityCredential', 'SharedTokenCacheCredential', 'VisualStudioCredential',
             'VisualStudioCodeCredential', 'AzureCliCredential', 'AzurePowerShellCredential', 'AzureDeveloperCliCredential', 'InteractiveBrowserCredential')
-    } | ConvertTo-Json | ForEach-Object { [IO.File]::WriteAllText($metadata, $_) } # bez BOM – plugin BOM nečte
+    } | ConvertTo-Json | ForEach-Object { [IO.File]::WriteAllText($metadata, $_) } # no BOM - the plugin does not read it
 
     Write-Host "== Signing $target"
     & $signTool.FullName sign /v /fd SHA256 /tr 'http://timestamp.acs.microsoft.com' /td SHA256 /dlib $dlib.FullName /dmdf $metadata $target

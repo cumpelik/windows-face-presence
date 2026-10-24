@@ -20,7 +20,7 @@ public sealed class MainForm : Form
 
     public Action? PauseToggleRequested { get; set; }
 
-    // hlavička
+    // header
     private readonly PictureBox _stateIcon = new();
     private readonly Label _lblState = new();
     private readonly Label _lblMessage = new();
@@ -31,11 +31,11 @@ public sealed class MainForm : Form
     private readonly Label _statInputs = new();
     private readonly Label _statCamera = new();
 
-    // náhled + kamera
+    // preview + camera
     private readonly PictureBox _preview = new();
     private readonly ComboBox _cbCamera = new();
 
-    // nastavení
+    // settings
     private readonly NumericUpDown _nudPresent = Theme.Numeric(0.5m, 300m, 1, 1m);
     private readonly NumericUpDown _nudAbsent = Theme.Numeric(0.2m, 60m, 1, 0.5m);
     private readonly NumericUpDown _nudThreshold = Theme.Numeric(0.05m, 0.95m, 2, 0.01m);
@@ -82,7 +82,7 @@ public sealed class MainForm : Form
         _tick.Start();
     }
 
-    /// <summary>Handlery, které se nesmí při přestavbě UI (změna jazyka) registrovat znovu.</summary>
+    /// <summary>Handlers that must not be registered again when the UI is rebuilt (language change).</summary>
     private void WireControls()
     {
         _cbCamera.DropDownStyle = ComboBoxStyle.DropDownList;
@@ -135,7 +135,7 @@ public sealed class MainForm : Form
             Text = L.T("app");
             BuildLayout();
             LoadSettingsIntoControls();
-            _headerState = PresenceState.Stopped; // vynutit překreslení ikony
+            _headerState = PresenceState.Stopped; // force the state icon to redraw
             OnStatus(_host.Monitor.Status);
         }
         finally { ResumeLayout(true); }
@@ -165,7 +165,7 @@ public sealed class MainForm : Form
         Controls.Add(root);
     }
 
-    /// <summary>Nenápadný pruh s poděkováním dole v okně.</summary>
+    /// <summary>Unobtrusive acknowledgement strip at the bottom of the window.</summary>
     private Control BuildFooter()
     {
         var claude = L.T("footer.claude");
@@ -261,7 +261,7 @@ public sealed class MainForm : Form
         RenderFlags();
         header.Controls.Add(flags, 2, 0);
 
-        // řádek statistik + Pozastavit vpravo, s linkou nahoře
+        // stats row + Pause on the right, with a line on top
         var statsRow = new TableLayoutPanel
         {
             AutoSize = true,
@@ -288,7 +288,7 @@ public sealed class MainForm : Form
         return header;
     }
 
-    /// <summary>Pruh se šesti stejně širokými poli – hodnoty se mění, ale nic neskáče.</summary>
+    /// <summary>Strip with six equally wide fields – values change, nothing jumps around.</summary>
     private Control BuildStatsStrip()
     {
         var strip = new TableLayoutPanel
@@ -329,7 +329,7 @@ public sealed class MainForm : Form
     {
         var col = new Panel { Dock = DockStyle.Fill, Margin = new Padding(0, 0, 12, 0) };
 
-        // náhled drží poměr 16:9 podle šířky sloupce
+        // the preview keeps 16:9 based on the column width
         var previewCard = new Panel { Dock = DockStyle.Top, Height = 240, BackColor = Color.FromArgb(17, 24, 39), Padding = new Padding(1) };
         _preview.Dock = DockStyle.Fill;
         _preview.SizeMode = PictureBoxSizeMode.Zoom;
@@ -352,7 +352,7 @@ public sealed class MainForm : Form
         camCard.AddHintFull(L.T("hint.camera"));
 
         var tools = new Card(null) { Dock = DockStyle.Top, Margin = new Padding(0) };
-        // tři stejně široká tlačítka v jedné řadě
+        // three equally wide buttons in one row
         var toolButtons = new TableLayoutPanel { AutoSize = true, ColumnCount = 3, RowCount = 1, Margin = new Padding(0, 0, 0, 4) };
         var buttons = new[]
         {
@@ -374,7 +374,7 @@ public sealed class MainForm : Form
         tools.AddFull(toolButtons);
         tools.AddHintFull(L.T("hint.app"));
 
-        // Náhled 16:9 podle šířky, ale nikdy tak vysoký, aby pod ním karty Kamera a nástroje nevešly.
+        // Preview 16:9 by width, but never so tall that the Camera and tools cards below it do not fit.
         void FitPreview()
         {
             var byWidth = (int)(col.ClientSize.Width * 9.0 / 16.0);
@@ -386,7 +386,7 @@ public sealed class MainForm : Form
         camCard.SizeChanged += (_, _) => FitPreview();
         tools.SizeChanged += (_, _) => FitPreview();
 
-        // Dock se vyhodnocuje od posledně přidaného: náhled nahoře, pod ním Kamera, pak nástroje.
+        // Docking is applied from the last added control: preview on top, then Camera, then tools.
         col.Controls.Add(tools);
         col.Controls.Add(new Panel { Dock = DockStyle.Top, Height = 12 });
         col.Controls.Add(camCard);
@@ -404,7 +404,7 @@ public sealed class MainForm : Form
         scroller.Resize += (_, _) => ScheduleScrollCheck();
         stack.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
 
-        // --- Registrace ---
+        // --- Enrollment ---
         var enroll = new Card(L.T("card.enroll"));
         _lblTemplates.AutoSize = true;
         _lblTemplates.Margin = new Padding(0, 0, 0, 10);
@@ -419,14 +419,14 @@ public sealed class MainForm : Form
         enroll.AddHintFull(L.T("hint.enroll"));
         stack.Controls.Add(enroll);
 
-        // --- Kontrola přítomnosti ---
+        // --- Presence check ---
         var presence = new Card(L.T("card.presence"));
         presence.AddRow(L.T("lbl.present_interval"), _nudPresent);
         presence.AddRow(L.T("lbl.absent_interval"), _nudAbsent);
         presence.AddRow(L.T("lbl.threshold"), _nudThreshold, L.T("hint.threshold"));
         stack.Controls.Add(presence);
 
-        // --- Aplikace ---
+        // --- Application ---
         var app = new Card(L.T("card.app"));
         _chkAutostart.Text = L.T("chk.autostart");
         _chkAutostart.AutoSize = true;
@@ -458,9 +458,9 @@ public sealed class MainForm : Form
     }
 
     /// <summary>
-    /// WinForms AutoScroll si scrollbar "udrží": zúží obsah, nápovědy se zalomí na víc řádků a obsah pak opravdu přeteče.
-    /// Proto změříme výšku obsahu při plné šířce a scrollbar zapneme jen když se nevejde.
-    /// Spouští se jen při skutečné změně vnější velikosti panelu – přepnutí scrollbaru ji nemění, takže se to nezacyklí.
+    /// WinForms AutoScroll "keeps" its scrollbar: it narrows the content, hints wrap to more lines and the content really
+    /// overflows. So the content height is measured at full width and the scrollbar is enabled only when it does not fit.
+    /// Runs only when the outer panel size really changes – toggling the scrollbar does not change it, so it cannot loop.
     /// </summary>
     private void UpdateScrollbar()
     {
@@ -469,7 +469,7 @@ public sealed class MainForm : Form
         _lastScrollCheckSize = _scroller.Size;
         _scroller.AutoScroll = false;
         _stack.PerformLayout();
-        foreach (Control c in _stack.Controls) c.PerformLayout(); // Card.OnLayout přepočte šířku nápověd
+        foreach (Control c in _stack.Controls) c.PerformLayout(); // Card.OnLayout recalculates the hint widths
         _stack.PerformLayout();
         if (_stack.Height > _scroller.ClientSize.Height) _scroller.AutoScroll = true;
     }
@@ -601,7 +601,10 @@ public sealed class MainForm : Form
     private void ShowAbout()
     {
         var v = typeof(MainForm).Assembly.GetName().Version?.ToString(3) ?? "?";
-        MessageBox.Show(this, L.T("about.text", v, Log.Directory), L.T("dlg.about"), MessageBoxButtons.OK, MessageBoxIcon.Information);
+        if (MessageBox.Show(this, L.T("about.text", v, Log.Directory), L.T("dlg.about"), MessageBoxButtons.YesNo, MessageBoxIcon.Information) != DialogResult.Yes)
+            return;
+        var text = TextViewerForm.ReadResource("LICENSE.txt") + "\n\n\n" + TextViewerForm.ReadResource("THIRD-PARTY-NOTICES.txt");
+        new TextViewerForm(L.T("dlg.licenses"), text).Show(this);
     }
 
     public void OnPauseChanged(bool paused) => SafeInvoke(() => _btnPause.Text = L.T(paused ? "btn.resume" : "btn.pause"));
@@ -681,7 +684,7 @@ public sealed class MainForm : Form
         }
     }
 
-    /// <summary>Rámeček jen s rohy – ladí s ikonou aplikace.</summary>
+    /// <summary>Corner-only box – matches the app icon.</summary>
     private static void DrawCornerBox(Mat img, OpenCvSharp.Rect r, Scalar color)
     {
         var len = Math.Max(8, Math.Min(r.Width, r.Height) / 4);
@@ -721,7 +724,7 @@ public sealed class MainForm : Form
         }
     }
 
-    /// <summary>Zobrazí okno v popředí; když leží mimo všechny monitory (odpojený monitor), vrátí ho na hlavní obrazovku.</summary>
+    /// <summary>Shows the window in front; if it is outside all monitors (disconnected monitor), moves it to the primary screen.</summary>
     public void ShowAndActivate()
     {
         if (!Visible) Show();

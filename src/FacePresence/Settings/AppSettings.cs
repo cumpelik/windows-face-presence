@@ -11,7 +11,7 @@ public sealed class FaceTemplate
     public DateTime Created { get; set; }
 }
 
-/// <summary>Nastavení + registrované šablony obličeje, JSON v %LOCALAPPDATA%\FacePresence\settings.json.</summary>
+/// <summary>Settings + enrolled face templates, stored as JSON in %LOCALAPPDATA%\FacePresence\settings.json.</summary>
 public sealed class AppSettings
 {
     private static readonly object Sync = new();
@@ -23,23 +23,23 @@ public sealed class AppSettings
 
     public static string FilePath { get; } = Path.Combine(Log.Directory, "settings.json");
 
-    /// <summary>Id zdroje (MediaFrameSourceInfo.Id) naposledy zvolené kamery; null = automaticky (IR přednostně).</summary>
+    /// <summary>Source id (MediaFrameSourceInfo.Id) of the last selected camera; null = automatic (IR preferred).</summary>
     public string? CameraSourceId { get; set; }
 
     public double PresentIntervalSec { get; set; } = 10;
     public double AbsentIntervalSec { get; set; } = 1;
 
-    /// <summary>Minimální kosinová podobnost pro "to je on". SFace/LFW doporučuje 0.363; pro 1 uživatele volíme přísnější.</summary>
+    /// <summary>Minimum cosine similarity for "that is the user". SFace/LFW recommends 0.363; a stricter value is used for a single user.</summary>
     public double MatchThreshold { get; set; } = 0.40;
 
     public bool KeepAliveEnabled { get; set; } = true;
 
-    /// <summary>Po kolika sekundách skutečné nečinnosti (GetLastInputInfo) poslat minimální vstup. Musí být pod nejkratším lock timeoutem (obvykle 60 s).</summary>
+    /// <summary>After how many seconds of real idle time (GetLastInputInfo) to send the minimal input. Must be below the shortest lock timeout (usually 60 s).</summary>
     public double KeepAliveIdleSec { get; set; } = 40;
 
     public KeepAliveMethod KeepAliveMethod { get; set; } = KeepAliveMethod.ZeroMouseMove;
 
-    /// <summary>"en" (výchozí) nebo "cs".</summary>
+    /// <summary>"en" (default) or "cs".</summary>
     public string Language { get; set; } = "en";
 
     public List<FaceTemplate> Templates { get; set; } = new();
@@ -56,7 +56,7 @@ public sealed class AppSettings
         }
         catch (Exception ex)
         {
-            Log.Write("Načtení nastavení selhalo, používám výchozí: " + ex.Message);
+            Log.Write("Loading settings failed, using defaults: " + ex.Message);
         }
         return new AppSettings();
     }
@@ -87,7 +87,7 @@ public sealed class AppSettings
         }
         catch (Exception ex)
         {
-            Log.Write("Uložení nastavení selhalo: " + ex.Message);
+            Log.Write("Saving settings failed: " + ex.Message);
         }
     }
 }

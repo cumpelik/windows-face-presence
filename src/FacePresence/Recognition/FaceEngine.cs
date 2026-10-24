@@ -8,10 +8,10 @@ namespace FacePresence.Recognition;
 public sealed record FaceResult(CvRect Box, float Score, float[] Feature);
 
 /// <summary>
-/// Lokální detekce (YuNet přes cv::FaceDetectorYN) + embedding obličeje (SFace přes cv::dnn),
-/// obojí modely z OpenCV Zoo, bez cloudu. Porovnání = kosinová podobnost 128D vektorů.
-/// Zarovnání obličeje (5 bodů -> 112x112) je reimplementace cv::FaceRecognizerSF::alignCrop,
-/// protože NuGet OpenCvSharp 4.13 tuto třídu zatím neobaluje.
+/// Local face detection (YuNet via cv::FaceDetectorYN) + face embedding (SFace via cv::dnn), both models from the
+/// OpenCV Zoo, no cloud. Comparison = cosine similarity of 128-D vectors.
+/// Face alignment (5 points -> 112x112) re-implements cv::FaceRecognizerSF::alignCrop, because the
+/// OpenCvSharp 4.13 NuGet package does not wrap that class yet.
 /// </summary>
 public sealed class FaceEngine : IDisposable
 {
@@ -23,7 +23,7 @@ public sealed class FaceEngine : IDisposable
 
     public const int MaxWidth = 640;
 
-    // Referenční pozice 5 bodů (pravé oko, levé oko, nos, pravý a levý koutek úst) v 112x112 – shodné s OpenCV.
+    // Reference positions of the 5 landmarks (right eye, left eye, nose, right and left mouth corner) in 112x112 – same as OpenCV.
     private static readonly double[,] RefPoints =
     {
         { 38.2946, 51.6963 }, { 73.5318, 51.5014 }, { 56.0252, 71.7366 }, { 41.5493, 92.3655 }, { 70.7299, 92.2041 },
@@ -34,7 +34,7 @@ public sealed class FaceEngine : IDisposable
         _yunetPath = ExtractModel("yunet.onnx");
         _detector = CreateDetector(_yunetPath, _detectorSize);
         _recognizer = CvDnn.ReadNetFromOnnx(LoadResource("sface.onnx"))
-                      ?? throw new InvalidOperationException("Model SFace se nepodařilo načíst");
+                      ?? throw new InvalidOperationException("Failed to load the SFace model");
         _recognizer.SetPreferableBackend(Backend.OPENCV);
         _recognizer.SetPreferableTarget(Target.CPU);
     }
@@ -45,13 +45,13 @@ public sealed class FaceEngine : IDisposable
     private static byte[] LoadResource(string name)
     {
         using var stream = typeof(FaceEngine).Assembly.GetManifestResourceStream(name)
-                           ?? throw new InvalidOperationException("Chybí vestavěný model " + name);
+                           ?? throw new InvalidOperationException("Missing embedded model " + name);
         using var ms = new MemoryStream();
         stream.CopyTo(ms);
         return ms.ToArray();
     }
 
-    /// <summary>FaceDetectorYN umí v této verzi wrapperu načíst model jen z cesty – rozbalíme jej z EXE do LocalAppData.</summary>
+    /// <summary>This wrapper version of FaceDetectorYN can load the model from a path only – extract it from the EXE to LocalAppData.</summary>
     private static string ExtractModel(string name)
     {
         var dir = Path.Combine(Log.Directory, "models");
@@ -63,7 +63,7 @@ public sealed class FaceEngine : IDisposable
         return path;
     }
 
-    /// <summary>Zmenší snímek na rozumnou šířku (nahradí Mat), kvůli rychlosti.</summary>
+    /// <summary>Downscales the frame to a reasonable width (replaces the Mat) for speed.</summary>
     public static void Downscale(ref Mat bgr)
     {
         if (bgr.Width <= MaxWidth) return;
@@ -74,14 +74,14 @@ public sealed class FaceEngine : IDisposable
         bgr = small;
     }
 
-    /// <summary>Najde největší obličej a spočítá jeho embedding. Null, když žádný obličej není.</summary>
+    /// <summary>Finds the largest face and computes its embedding. Null when there is no face.</summary>
     public FaceResult? Analyze(Mat bgr)
     {
         lock (_sync)
         {
             if (_detectorSize.Width != bgr.Width || _detectorSize.Height != bgr.Height)
             {
-                // YuNet vyžaduje shodnou velikost vstupu; wrapper 4.13 nemá SetInputSize, detektor se vytvoří znovu (rozměr kamery se mění jen výjimečně).
+                // YuNet needs a matching input size; wrapper 4.13 has no SetInputSize, so the detector is recreated (the camera size rarely changes).
                 _detectorSize = new CvSize(bgr.Width, bgr.Height);
                 _detector.Dispose();
                 _detector = CreateDetector(_yunetPath, _detectorSize);
@@ -99,7 +99,7 @@ public sealed class FaceEngine : IDisposable
                 if (area > bestArea) { bestArea = area; best = i; }
             }
 
-            // řádek: x, y, w, h, 5x (lx, ly), score
+            // row: x, y, w, h, 5x (lx, ly), score
             var landmarks = new double[5, 2];
             for (var k = 0; k < 5; k++)
             {
@@ -124,7 +124,7 @@ public sealed class FaceEngine : IDisposable
         }
     }
 
-    /// <summary>Umeyama – podobnostní transformace (rotace, měřítko, posun) z 5 bodů na referenční body; 2x3 CV_64F.</summary>
+    /// <summary>Umeyama – similarity transform (rotation, scale, translation) from the 5 landmarks to the reference points; 2x3 CV_64F.</summary>
     private static Mat SimilarityTransform(double[,] src)
     {
         const int n = 5;
@@ -152,7 +152,7 @@ public sealed class FaceEngine : IDisposable
         using var vt = new Mat();
         Cv2.SVDecomp(a, w, u, vt, SVD.Flags.FullUV);
 
-        // R = U * diag(d) * Vt (2x2, ručně – bez dočasných MatExpr)
+        // R = U * diag(d) * Vt (2x2, by hand – no temporary MatExpr)
         var r = new double[2, 2];
         for (var i = 0; i < 2; i++)
             for (var j = 0; j < 2; j++)

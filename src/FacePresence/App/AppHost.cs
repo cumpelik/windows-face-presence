@@ -5,7 +5,7 @@ using FacePresence.Settings;
 
 namespace FacePresence.App;
 
-/// <summary>Drží sdílené objekty aplikace (nastavení, engine, monitor) a výběr kamery.</summary>
+/// <summary>Holds the shared application objects (settings, engine, monitor) and the camera selection.</summary>
 public sealed class AppHost : IDisposable
 {
     private readonly SemaphoreSlim _gate = new(1, 1);
@@ -32,15 +32,15 @@ public sealed class AppHost : IDisposable
         try { Cameras = await CameraEnumerator.ListAsync(); }
         catch (Exception ex)
         {
-            Log.Write("Výčet kamer selhal: " + ex.Message);
+            Log.Write("Camera enumeration failed: " + ex.Message);
             Cameras = Array.Empty<CameraInfo>();
         }
-        Log.Write("Kamery: " + (Cameras.Count == 0 ? "žádné" : string.Join("; ", Cameras.Select(c => c.DisplayName))));
+        Log.Write("Cameras: " + (Cameras.Count == 0 ? "none" : string.Join("; ", Cameras.Select(c => c.DisplayName))));
         CamerasChanged?.Invoke();
         return Cameras;
     }
 
-    /// <summary>Uložená kamera, jinak první v seznamu (IR mají přednost).</summary>
+    /// <summary>The saved camera, otherwise the first one in the list (IR cameras come first).</summary>
     public CameraInfo? PreferredCamera() =>
         Cameras.FirstOrDefault(c => c.SourceId == Settings.CameraSourceId) ?? Cameras.FirstOrDefault();
 

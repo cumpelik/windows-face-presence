@@ -13,7 +13,7 @@ internal unsafe interface IMemoryBufferByteAccess
     void GetBuffer(out byte* buffer, out uint capacity);
 }
 
-/// <summary>Převod WinRT SoftwareBitmap -> OpenCV Mat (BGR, 8 bit). Výsledek je vlastní kopie.</summary>
+/// <summary>Converts a WinRT SoftwareBitmap to an OpenCV Mat (BGR, 8 bit). The result is an independent copy.</summary>
 public static class FrameConverter
 {
     public static unsafe Mat ToBgr(SoftwareBitmap bitmap)
@@ -40,7 +40,7 @@ public static class FrameConverter
             }
             case BitmapPixelFormat.Nv12:
             {
-                // Y rovina = jas; chroma ignorujeme (u IR stejně není).
+                // Y plane = luminance; chroma is ignored (IR has none anyway).
                 using var gray = Mat.FromPixelData(plane.Height, plane.Width, MatType.CV_8UC1, ptr, plane.Stride);
                 return GrayToBgr(gray);
             }

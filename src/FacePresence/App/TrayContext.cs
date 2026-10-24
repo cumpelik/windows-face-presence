@@ -5,7 +5,7 @@ using Microsoft.Win32;
 
 namespace FacePresence.App;
 
-/// <summary>Aplikace v systémové liště; hlavní okno se jen skrývá/zobrazuje.</summary>
+/// <summary>The tray application; the main window is only hidden and shown.</summary>
 public sealed class TrayContext : ApplicationContext
 {
     private readonly AppHost _host;
@@ -25,7 +25,7 @@ public sealed class TrayContext : ApplicationContext
     {
         _host = new AppHost();
         _form = new MainForm(_host) { PauseToggleRequested = TogglePause };
-        _ = _form.Handle; // vytvořit handle hned, aby šlo BeginInvoke i při skrytém okně
+        _ = _form.Handle; // create the handle now so BeginInvoke works while the window is hidden
 
         var menu = new ContextMenuStrip();
         _openItem = new ToolStripMenuItem("", null, (_, _) => ShowForm()) { Font = new Font(menu.Font, FontStyle.Bold) };
@@ -51,13 +51,13 @@ public sealed class TrayContext : ApplicationContext
         SystemEvents.SessionSwitch += OnSessionSwitch;
         SystemEvents.SessionEnding += (_, _) => ExitApp();
 
-        // Druhé spuštění EXE jen pošle signál – tady okno zobrazíme.
+        // A second start of the EXE only sends a signal; the window is shown here.
         _showWait = ThreadPool.RegisterWaitForSingleObject(showSignal, (_, _) =>
         {
             try { _form.BeginInvoke(ShowForm); } catch { }
         }, null, Timeout.Infinite, executeOnlyOnce: false);
 
-        // Watchdog: když UI vlákno přestane odpovídat, zapíše to do logu (pomáhá diagnostikovat "okno nejde vyvolat").
+        // Watchdog: logs when the UI thread stops responding (helps to diagnose "the window does not come up").
         _watchdog = new System.Threading.Timer(_ => CheckUi(), null, 5000, 5000);
 
         if (!startMinimized) ShowForm();
@@ -85,7 +85,7 @@ public sealed class TrayContext : ApplicationContext
                 Interlocked.Exchange(ref _lastUiPongTicks, Environment.TickCount64);
             });
         }
-        catch { /* okno zavřené */ }
+        catch { /* window closed */ }
     }
 
     private void ApplyLanguage()
@@ -107,7 +107,7 @@ public sealed class TrayContext : ApplicationContext
                 _icon.Text = text.Length > 63 ? text[..63] : text;
             });
         }
-        catch { /* okno zavřené */ }
+        catch { /* window closed */ }
     }
 
     private void OnSessionSwitch(object sender, SessionSwitchEventArgs e)

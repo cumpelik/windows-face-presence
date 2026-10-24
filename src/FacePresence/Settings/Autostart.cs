@@ -2,7 +2,7 @@ using Microsoft.Win32;
 
 namespace FacePresence.Settings;
 
-/// <summary>Automatické spuštění po přihlášení přes HKCU\...\Run (jen pro aktuálního uživatele, bez admin práv).</summary>
+/// <summary>Start after sign-in via HKCU\...\Run (current user only, no admin rights needed).</summary>
 public static class Autostart
 {
     private const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";

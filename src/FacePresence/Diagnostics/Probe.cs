@@ -13,9 +13,9 @@ using Windows.Media.Capture.Frames;
 namespace FacePresence.Diagnostics;
 
 /// <summary>
-/// Ověření dvou kritických bodů přímo na cílovém stroji:
-///  1) jde získat obraz z IR kamery Windows Hello (a najde se v něm obličej)?
-///  2) resetuje simulovaný vstup skutečný čítač nečinnosti (GetLastInputInfo) a jaké lock politiky platí?
+/// Verifies the two critical points directly on the target machine:
+///  1) can we get frames from the Windows Hello IR camera (and is a face found in them)?
+///  2) does the simulated input reset the real idle counter (GetLastInputInfo), and which lock policies apply?
 /// </summary>
 public static class Probe
 {
@@ -37,7 +37,7 @@ public static class Probe
         var colorOk = false;
         var irFace = false;
 
-        // ---------- 1) kamery ----------
+        // ---------- 1) cameras ----------
         W(L.T("p.cameras"));
         try
         {
@@ -118,7 +118,7 @@ public static class Probe
         }
         W();
 
-        // ---------- 2) lock politiky ----------
+        // ---------- 2) lock policies ----------
         W(L.T("p.policies"));
         var inactivity = LockPolicy.ReadDword(Registry.LocalMachine, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System", "InactivityTimeoutSecs");
         W(L.T("p.inactivity", inactivity is null or 0 ? L.T("p.not_set") : inactivity + " s"));
@@ -162,7 +162,7 @@ public static class Probe
         W(L.T("p.effective", rule == null ? L.T("p.effective_none") : L.T("p.effective_val", L.Duration(rule.Timeout), rule.SourceName)));
         W();
 
-        // ---------- 3) simulovaný vstup ----------
+        // ---------- 3) simulated input ----------
         W(L.T("p.keepalive"));
         var prev = NativeMethods.SetThreadExecutionState(NativeMethods.EXECUTION_STATE.ES_CONTINUOUS | NativeMethods.EXECUTION_STATE.ES_DISPLAY_REQUIRED);
         W(L.T("p.ste", L.T(prev != 0 ? "p.ok" : "p.failed")));
@@ -183,7 +183,7 @@ public static class Probe
         }
         W();
 
-        // ---------- shrnutí ----------
+        // ---------- summary ----------
         W(L.T("p.summary"));
         W(irOk ? L.T("p.sum_ir_ok", L.T(irFace ? "p.sum_ir_face" : "p.sum_ir_noface"))
             : cams.Any(c => c.IsInfrared) ? L.T("p.sum_ir_fail") : L.T("p.sum_ir_none"));

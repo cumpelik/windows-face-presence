@@ -7,8 +7,8 @@ using Windows.Media.MediaProperties;
 namespace FacePresence.Capture;
 
 /// <summary>
-/// Otevře kameru (IR nebo barevnou) přes WinRT MediaCapture a na vyžádání vrátí aktuální snímek jako Mat (BGR).
-/// U IR kamer vrací přednostně osvětlené snímky (InfraredMediaFrame.IsIlluminated).
+/// Opens a camera (IR or color) through WinRT MediaCapture and returns the current frame as a Mat (BGR) on request.
+/// For IR cameras illuminated frames are preferred (InfraredMediaFrame.IsIlluminated).
 /// </summary>
 public sealed class FrameGrabber : IDisposable
 {
@@ -39,7 +39,7 @@ public sealed class FrameGrabber : IDisposable
     {
         var groups = await MediaFrameSourceGroup.FindAllAsync();
         var group = groups.FirstOrDefault(g => g.Id == camera.GroupId)
-                    ?? throw new InvalidOperationException("Kamera není připojena: " + camera.DisplayName);
+                    ?? throw new InvalidOperationException("Camera is not connected: " + camera.DisplayName);
 
         MediaCapture? capture = null;
         Exception? lastError = null;
@@ -68,18 +68,18 @@ public sealed class FrameGrabber : IDisposable
             }
         }
         if (capture == null)
-            throw new InvalidOperationException("Kameru nelze otevřít: " + lastError?.Message, lastError);
+            throw new InvalidOperationException("Cannot open the camera: " + lastError?.Message, lastError);
 
         try
         {
             if (!capture.FrameSources.TryGetValue(camera.SourceId, out var source))
-                throw new InvalidOperationException("Zdroj snímků nenalezen: " + camera.SourceId);
+                throw new InvalidOperationException("Frame source not found: " + camera.SourceId);
 
             var format = PickFormat(source.SupportedFormats, camera.IsInfrared);
             if (format != null)
             {
                 try { await source.SetFormatAsync(format); }
-                catch (Exception ex) { Log.Write("SetFormatAsync selhal (pokračuji s výchozím): " + ex.Message); }
+                catch (Exception ex) { Log.Write("SetFormatAsync failed (continuing with the default format): " + ex.Message); }
             }
 
             var reader = camera.IsInfrared
@@ -91,12 +91,12 @@ public sealed class FrameGrabber : IDisposable
             if (status != MediaFrameReaderStartStatus.Success)
             {
                 reader.Dispose();
-                throw new InvalidOperationException("Čtení snímků nelze spustit: " + status);
+                throw new InvalidOperationException("Cannot start reading frames: " + status);
             }
 
             var cur = source.CurrentFormat;
             var desc = $"{cur.Subtype} {cur.VideoFormat.Width}x{cur.VideoFormat.Height} @ {cur.FrameRate.Numerator / Math.Max(1, cur.FrameRate.Denominator)} fps";
-            Log.Write($"Kamera otevřena: {camera.DisplayName} {desc} ({sharing})");
+            Log.Write($"Camera opened: {camera.DisplayName} {desc} ({sharing})");
             var all = source.SupportedFormats
                 .Select(f => $"{f.Subtype} {f.VideoFormat?.Width}x{f.VideoFormat?.Height}@{f.FrameRate.Numerator / Math.Max(1, f.FrameRate.Denominator)}")
                 .Distinct().ToList();
@@ -123,7 +123,7 @@ public sealed class FrameGrabber : IDisposable
             .FirstOrDefault() ?? formats[0];
     }
 
-    /// <summary>Vrátí nový (ještě nevrácený) snímek, nebo null po vypršení timeoutu. Volající Mat vlastní.</summary>
+    /// <summary>Returns a new (not yet returned) frame, or null after the timeout. The caller owns the Mat.</summary>
     public async Task<Mat?> GrabAsync(TimeSpan timeout, CancellationToken ct = default)
     {
         if (_disposed) return null;
@@ -165,7 +165,7 @@ public sealed class FrameGrabber : IDisposable
                     DarkFrames++;
                     dark?.Dispose();
                     dark = mat;
-                    // Osvětlené snímky se u IR střídají s neosvětlenými; chvíli počkáme na osvětlený.
+                    // IR cameras alternate illuminated and dark frames; wait a little for an illuminated one.
                     if (sw.Elapsed > TimeSpan.FromMilliseconds(700))
                     {
                         var r = dark; dark = null; return r;
@@ -193,6 +193,6 @@ public sealed class FrameGrabber : IDisposable
         try { _reader.StopAsync().AsTask().Wait(2000); } catch { }
         try { _reader.Dispose(); } catch { }
         try { _capture.Dispose(); } catch { }
-        Log.Write("Kamera uvolněna: " + _camera.DisplayName);
+        Log.Write("Camera released: " + _camera.DisplayName);
     }
 }

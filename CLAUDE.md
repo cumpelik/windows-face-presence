@@ -1,12 +1,21 @@
-# FacePresence
+# Face Presence
 
-Windows 11 tray app (C# / .NET 8 WinForms) – rozpoznání registrovaného uživatele kamerou (IR Windows Hello přednostně)
-a odkládání automatického zamčení Windows. Zadání: docs/zadani.md, popis a stav: README.md.
+Windows 11 tray app (C# / .NET 8 WinForms) that recognizes the enrolled user with the camera (Windows Hello IR camera
+preferred) and defers the automatic Windows lock while they are present. Original brief: docs/brief.md, user docs:
+README.md (English) and README.cs.md (Czech) – keep both in sync.
 
-- Build: `dotnet build src/FacePresence/FacePresence.csproj -c Release` (funguje i na Linuxu, `EnableWindowsTargeting`).
-  Při práci přes SMB share kopíruj projekt do scratchpadu a builduj tam (bin/obj nepatří na share).
-- Publish: `publish.cmd [verze]` → `build\windows\build.ps1` (single-file, win-x64). Podpis přes Azure Artifact Signing stejně jako BsonJet (TbdMongoClient/build) – zapne se proměnnými ARTIFACT_SIGNING_*; GitHub Actions release.yml je bere ze secrets.
-- Kamera jde výhradně přes WinRT `Windows.Media.Capture.Frames` (OpenCV VideoCapture IR kameru nevidí).
-- OpenCvSharp 4.13 NuGet nemá `FaceRecognizerSF` ani `FaceDetectorYN.SetInputSize` – SFace jede přes `CvDnn`
-  s vlastním alignCrop (Umeyama) a detektor se při změně rozměru snímku vytváří znovu.
-- Texty UI: `Localization/L.cs` (en výchozí, cs), klíče `L.T("…")`; nové texty vždy do obou jazyků. Logy anglicky.
+- Build: `dotnet build src/FacePresence/FacePresence.csproj -c Release` (works on Linux too, `EnableWindowsTargeting`).
+  When working over an SMB share, copy the project to a local scratch folder and build there (bin/obj must not land
+  on the share).
+- Release build: `publish.cmd [version]` → `build/windows/build.ps1` (single-file, win-x64). Signing via Azure Artifact
+  Signing is enabled by the `ARTIFACT_SIGNING_*` and `AZURE_*` environment variables; GitHub Actions `release.yml`
+  takes them from repository secrets.
+- Camera access goes exclusively through WinRT `Windows.Media.Capture.Frames` (OpenCV `VideoCapture` cannot see the IR
+  camera).
+- The OpenCvSharp 4.13 NuGet package has no `FaceRecognizerSF` and no `FaceDetectorYN.SetInputSize` – SFace runs through
+  `CvDnn` with our own alignCrop (Umeyama), and the detector is recreated when the frame size changes.
+- UI texts live in `Localization/L.cs` (English default, Czech), accessed via `L.T("…")`; every new text needs both
+  languages. Code comments and logs are in English.
+- Public repository (MIT), github.com/cumpelik/windows-face-presence. Component licenses: THIRD-PARTY-NOTICES.txt
+  (embedded in the EXE, shown from About). The FFmpeg plugin of the OpenCvSharp runtime is excluded in the csproj (LGPL,
+  not used) – re-check the notices whenever a dependency changes.
