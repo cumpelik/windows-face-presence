@@ -22,7 +22,7 @@ nastavení.
 
 ## Funkce
 
-- **Rozpozná vás, ne libovolný obličej.** Jednou se zaregistrujete, cizí lidé před kamerou zamčení neodloží.
+- **Rozpozná vás, ne libovolný obličej.** Jednou si naskenujete obličej, cizí lidé před kamerou zamčení neodloží.
 - **Přednostně IR kamera Windows Hello.** Funguje i potmě a hůř se oklame obrázkem na displeji. Bez IR kamery se
   použije běžná webkamera.
 - **Běží lokálně.** Detekce (YuNet) i rozpoznání (SFace) běží na procesoru přes OpenCV. Nic se nikam neposílá.
@@ -30,15 +30,15 @@ nastavení.
 - **Skutečný zámek Windows.** Žádná vlastní zamykací obrazovka, nic se neodemyká, Win+L funguje vždy.
 - **Ukazuje, kdy by se Windows zamkly** – přečte zásady nečinnosti, zabezpečený spořič, vypnutí displeje a uspání a
   při vaší nepřítomnosti odpočítává.
-- Ikona v liště podle stavu, živý náhled se skóre shody, vestavěná diagnostika, angličtina a čeština, spuštění po
-  přihlášení.
+- Vzhled Windows 11 (Fluent, Mica, světlý i tmavý režim podle systému), ikona v liště podle stavu, živý náhled se
+  skóre shody, vestavěná diagnostika, angličtina a čeština, spuštění po přihlášení.
 
 ## Jak to funguje
 
 1. Snímek z kamery se čte přes WinRT `MediaFrameReader` (jediné API, které IR kameru Windows Hello zpřístupní;
    DirectShow ani OpenCV `VideoCapture` ji nevidí). U IR kamer se používají jen osvětlené snímky.
 2. YuNet najde největší obličej, ten se zarovná na 112×112 a SFace z něj spočítá 128rozměrný otisk.
-3. Otisk se porovná (kosinová podobnost) s registrovanými vzorky ze stejné kamery.
+3. Otisk se porovná (kosinová podobnost) s uloženým obličejem ze stejné kamery.
 4. Dokud jste rozpoznáni, aplikace:
    - drží `SetThreadExecutionState(ES_DISPLAY_REQUIRED)` – displej zůstane zapnutý a počítač neusne, a
    - čte skutečnou nečinnost přes `GetLastInputInfo`; jen když se klávesnice ani myši chvíli nedotknete (výchozí 40 s,
@@ -60,7 +60,7 @@ nastavení.
 
 1. Stáhněte `FacePresence-<verze>-win-x64.exe` z [Releases](../../releases) a spusťte ho. Je to jeden soubor bez
    instalace, první spuštění trvá pár sekund, než se rozbalí.
-2. IR kamera se vybere automaticky. Klikněte na **Registrovat obličej** a asi 5 s se dívejte do kamery.
+2. IR kamera se vybere automaticky. Klikněte na **Naskenovat obličej** a asi 5 s se dívejte do kamery.
 3. Sledujte skóre v náhledu: váš obličej má být zřetelně nad prahem (výchozí 0,40). Když se k němu přiblíží někdo
    jiný, zvyšte práh na 0,45–0,50.
 4. Případně zaškrtněte **Spouštět po přihlášení do Windows**.
@@ -75,7 +75,7 @@ Zavření okna aplikaci jen schová do lišty. Okno vrátíte opětovným spušt
   zamčení kvůli nečinnosti, dokud vás rozpoznává.
 - **Chybí detekce živosti.** Dost dobrý obrázek vašeho obličeje před kamerou může počítač držet odemčený. IR kamera
   to ztěžuje, ale nevylučuje. Nepoužívejte Face Presence tam, kde je to nepřijatelné riziko.
-- Registrace se ukládá jako číselné otisky obličeje (žádné fotky) do `%LOCALAPPDATA%\FacePresence\settings.json`,
+- Obličej se ukládá jako číselné otisky (žádné fotky) do `%LOCALAPPDATA%\FacePresence\settings.json`,
   nešifrovaně a čitelně pro váš účet Windows. Nic se nikam neposílá.
 - Na spravovaných počítačích bývá limit nečinnosti firemní zásada. Ověřte si, že vaše organizace takové nástroje
   dovoluje.
@@ -85,7 +85,7 @@ Zavření okna aplikaci jen schová do lišty. Okno vrátíte opětovným spušt
 - *Dynamický zámek* (zamčení po odchodu telefonu přes Bluetooth) a zamykací agenti třetích stran fungují nezávisle a
   odložit je nelze.
 - Windows blokují `SendInput`, když má fokus okno se zvýšenými oprávněními (UAC dotaz, aplikace spuštěná jako správce).
-- Model rozpoznání byl trénován na barevných fotkách. Na IR obrazu funguje dobře, když se registrujete na stejné kameře,
+- Model rozpoznání byl trénován na barevných fotkách. Na IR obrazu funguje dobře, když obličej naskenujete na stejné kameře,
   ale skóre jsou nižší než u barevné kamery.
 
 ## Build

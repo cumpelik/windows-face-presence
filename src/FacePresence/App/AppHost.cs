@@ -53,7 +53,7 @@ public sealed class AppHost : IDisposable
             var cam = PreferredCamera();
             if (cam == null)
             {
-                Monitor.Report(PresenceState.CameraError, Localization.L.T("host.no_camera"));
+                Monitor.Report(PresenceState.CameraError, new Localization.LocText("host.no_camera"));
                 return;
             }
             await Task.Run(() => Monitor.Start(cam));

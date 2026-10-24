@@ -47,7 +47,7 @@ public static class LockPolicy
             && int.TryParse(Ss("ScreenSaveTimeOut"), out var ssTimeout) && ssTimeout > 0)
             rules.Add(new LockRule(TimeSpan.FromSeconds(ssTimeout), "lock.screensaver"));
 
-        var onBattery = SystemInformation.PowerStatus.PowerLineStatus == PowerLineStatus.Offline;
+        var onBattery = System.Windows.SystemParameters.PowerLineStatus == System.Windows.PowerLineStatus.Offline;
         var (lockAc, lockDc) = ReadPower(NativeMethods.GUID_NO_SUBGROUP, NativeMethods.GUID_LOCK_CONSOLE_ON_WAKE);
         var requireSignIn = (onBattery ? lockDc : lockAc) == 1;
         if (requireSignIn)

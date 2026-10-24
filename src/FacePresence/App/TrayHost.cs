@@ -1,66 +1,66 @@
+using System.Windows;
+using System.Windows.Threading;
 using FacePresence.Localization;
 using FacePresence.Presence;
 using FacePresence.UI;
 using Microsoft.Win32;
+using WinForms = System.Windows.Forms;
 
 namespace FacePresence.App;
 
-/// <summary>The tray application; the main window is only hidden and shown.</summary>
-public sealed class TrayContext : ApplicationContext
+/// <summary>Tray icon, session lock handling and app lifetime. The main window is only hidden and shown.</summary>
+public sealed class TrayHost
 {
     private readonly AppHost _host;
-    private readonly NotifyIcon _icon;
-    private readonly MainForm _form;
-    private readonly ToolStripMenuItem _openItem;
-    private readonly ToolStripMenuItem _pauseItem;
-    private readonly ToolStripMenuItem _exitItem;
-    private bool _exiting;
-
+    private readonly WinForms.NotifyIcon _icon;
+    private readonly MainWindow _window;
+    private readonly WinForms.ToolStripMenuItem _openItem;
+    private readonly WinForms.ToolStripMenuItem _pauseItem;
+    private readonly WinForms.ToolStripMenuItem _exitItem;
     private readonly System.Threading.Timer _watchdog;
+    private readonly RegisteredWaitHandle _showWait;
     private long _lastUiPongTicks = Environment.TickCount64;
     private bool _hangLogged;
-    private RegisteredWaitHandle? _showWait;
+    private bool _exiting;
 
-    public TrayContext(bool startMinimized, EventWaitHandle showSignal)
+    private Dispatcher Ui => _window.Dispatcher;
+
+    public TrayHost(bool startMinimized, EventWaitHandle showSignal)
     {
         _host = new AppHost();
-        _form = new MainForm(_host) { PauseToggleRequested = TogglePause };
-        _ = _form.Handle; // create the handle now so BeginInvoke works while the window is hidden
+        _window = new MainWindow(_host) { PauseToggleRequested = TogglePause };
 
-        var menu = new ContextMenuStrip();
-        _openItem = new ToolStripMenuItem("", null, (_, _) => ShowForm()) { Font = new Font(menu.Font, FontStyle.Bold) };
-        _pauseItem = new ToolStripMenuItem("", null, (_, _) => TogglePause());
-        _exitItem = new ToolStripMenuItem("", null, (_, _) => ExitApp());
+        var menu = new WinForms.ContextMenuStrip();
+        _openItem = new WinForms.ToolStripMenuItem("", null, (_, _) => ShowWindow()) { Font = new System.Drawing.Font(menu.Font, System.Drawing.FontStyle.Bold) };
+        _pauseItem = new WinForms.ToolStripMenuItem("", null, (_, _) => TogglePause());
+        _exitItem = new WinForms.ToolStripMenuItem("", null, (_, _) => ExitApp());
         menu.Items.Add(_openItem);
         menu.Items.Add(_pauseItem);
-        menu.Items.Add(new ToolStripSeparator());
+        menu.Items.Add(new WinForms.ToolStripSeparator());
         menu.Items.Add(_exitItem);
         ApplyLanguage();
 
-        _icon = new NotifyIcon
+        _icon = new WinForms.NotifyIcon
         {
             Text = L.T("app"),
             Icon = TrayIcons.Get(PresenceState.Starting),
             ContextMenuStrip = menu,
             Visible = true,
         };
-        _icon.DoubleClick += (_, _) => ShowForm();
+        _icon.DoubleClick += (_, _) => ShowWindow();
 
         _host.Monitor.StatusChanged += OnStatus;
         L.Changed += ApplyLanguage;
         SystemEvents.SessionSwitch += OnSessionSwitch;
-        SystemEvents.SessionEnding += (_, _) => ExitApp();
+        Application.Current.SessionEnding += (_, _) => ExitApp();
 
         // A second start of the EXE only sends a signal; the window is shown here.
-        _showWait = ThreadPool.RegisterWaitForSingleObject(showSignal, (_, _) =>
-        {
-            try { _form.BeginInvoke(ShowForm); } catch { }
-        }, null, Timeout.Infinite, executeOnlyOnce: false);
+        _showWait = ThreadPool.RegisterWaitForSingleObject(showSignal, (_, _) => Ui.BeginInvoke(ShowWindow), null, Timeout.Infinite, executeOnlyOnce: false);
 
         // Watchdog: logs when the UI thread stops responding (helps to diagnose "the window does not come up").
         _watchdog = new System.Threading.Timer(_ => CheckUi(), null, 5000, 5000);
 
-        if (!startMinimized) ShowForm();
+        if (!startMinimized) ShowWindow();
         _ = _host.StartAsync();
     }
 
@@ -73,19 +73,15 @@ public sealed class TrayContext : ApplicationContext
             _hangLogged = true;
             Log.Write($"WARNING: UI thread not responding for {silence / 1000} s");
         }
-        try
+        Ui.BeginInvoke(() =>
         {
-            _form.BeginInvoke(() =>
+            if (_hangLogged)
             {
-                if (_hangLogged)
-                {
-                    Log.Write($"UI thread responsive again after {(Environment.TickCount64 - Interlocked.Read(ref _lastUiPongTicks)) / 1000} s");
-                    _hangLogged = false;
-                }
-                Interlocked.Exchange(ref _lastUiPongTicks, Environment.TickCount64);
-            });
-        }
-        catch { /* window closed */ }
+                Log.Write($"UI thread responsive again after {(Environment.TickCount64 - Interlocked.Read(ref _lastUiPongTicks)) / 1000} s");
+                _hangLogged = false;
+            }
+            Interlocked.Exchange(ref _lastUiPongTicks, Environment.TickCount64);
+        });
     }
 
     private void ApplyLanguage()
@@ -98,16 +94,13 @@ public sealed class TrayContext : ApplicationContext
     private void OnStatus(StatusSnapshot s)
     {
         if (_exiting) return;
-        try
+        Ui.BeginInvoke(() =>
         {
-            _form.BeginInvoke(() =>
-            {
-                _icon.Icon = TrayIcons.Get(s.State);
-                var text = L.T("app") + " – " + s.Message;
-                _icon.Text = text.Length > 63 ? text[..63] : text;
-            });
-        }
-        catch { /* window closed */ }
+            if (_exiting) return;
+            _icon.Icon = TrayIcons.Get(s.State);
+            var text = L.T("app") + " – " + s.Message;
+            _icon.Text = text.Length > 63 ? text[..63] : text;
+        });
     }
 
     private void OnSessionSwitch(object sender, SessionSwitchEventArgs e)
@@ -130,14 +123,14 @@ public sealed class TrayContext : ApplicationContext
         }
     }
 
-    private void ShowForm() => _form.ShowAndActivate();
+    private void ShowWindow() => _window.ShowAndActivate();
 
     public void TogglePause()
     {
         var paused = !_host.Monitor.IsPaused;
         _host.Monitor.SetPaused(paused);
         _pauseItem.Text = L.T(paused ? "btn.resume" : "btn.pause");
-        _form.OnPauseChanged(paused);
+        _window.OnPauseChanged(paused);
     }
 
     public void ExitApp()
@@ -145,12 +138,12 @@ public sealed class TrayContext : ApplicationContext
         if (_exiting) return;
         _exiting = true;
         _watchdog.Dispose();
-        _showWait?.Unregister(null);
+        _showWait.Unregister(null);
         SystemEvents.SessionSwitch -= OnSessionSwitch;
         _icon.Visible = false;
-        _form.ForceClose();
+        _window.ForceClose();
         try { _host.Dispose(); } catch (Exception ex) { Log.Write("Dispose: " + ex.Message); }
         _icon.Dispose();
-        ExitThread();
+        Application.Current.Shutdown();
     }
 }

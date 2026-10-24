@@ -22,13 +22,17 @@ public enum PresenceState
 
 public sealed record StatusSnapshot(
     PresenceState State,
-    string Message,
+    LocText Text,
     double? Score,
     TimeSpan Idle,
     DateTime? NextCheck,
     int Injections,
     DateTime? LastInjection,
-    string? CameraFormat);
+    string? CameraFormat)
+{
+    /// <summary>The status message in the current UI language.</summary>
+    public string Message => Text.ToString();
+}
 
 public sealed record EnrollResult(bool Success, string Message);
 
@@ -61,7 +65,7 @@ public sealed class PresenceMonitor : IDisposable
     public event Action<Mat, FaceResult?, double?>? FrameAnalyzed;
 
     public StatusSnapshot Status { get; private set; } =
-        new(PresenceState.Stopped, "", null, TimeSpan.Zero, null, 0, null, null);
+        new(PresenceState.Stopped, new LocText("mon.stopped"), null, TimeSpan.Zero, null, 0, null, null);
     public CameraInfo? Camera { get; private set; }
     public bool IsRunning => _task is { IsCompleted: false };
     public bool IsPaused => _paused;
@@ -93,10 +97,10 @@ public sealed class PresenceMonitor : IDisposable
         try { task?.Wait(TimeSpan.FromSeconds(8)); } catch { /* cancel */ }
         cts.Dispose();
         _keeper.SetPresent(false);
-        Publish(PresenceState.Stopped, L.T("mon.stopped"));
+        Publish(PresenceState.Stopped, T("mon.stopped"));
     }
 
-    public void Report(PresenceState state, string message) => Publish(state, message);
+    public void Report(PresenceState state, LocText message) => Publish(state, message);
 
     public void SetPaused(bool paused) => _paused = paused;
     public void SetLocked(bool locked) => _locked = locked;
@@ -112,7 +116,9 @@ public sealed class PresenceMonitor : IDisposable
         return job.Tcs.Task;
     }
 
-    private void Publish(PresenceState state, string message, double? score = null, DateTime? next = null, string? format = null)
+    private static LocText T(string key, params object[] args) => new(key, args);
+
+    private void Publish(PresenceState state, LocText message, double? score = null, DateTime? next = null, string? format = null)
     {
         Status = new StatusSnapshot(state, message, score, ActivityKeeper.GetIdleTime(), next,
             _keeper.InjectionCount, _keeper.LastInjection, format ?? Status.CameraFormat);
@@ -133,26 +139,26 @@ public sealed class PresenceMonitor : IDisposable
                     _keeper.SetPresent(false);
                     if (grabber != null) { grabber.Dispose(); grabber = null; }
                     Publish(_locked ? PresenceState.Locked : PresenceState.Paused,
-                        _locked ? L.T("mon.locked") : L.T("mon.paused"));
+                        _locked ? T("mon.locked") : T("mon.paused"));
                     await Task.Delay(1000, ct);
                     continue;
                 }
 
                 if (grabber == null)
                 {
-                    Publish(PresenceState.Starting, L.T("mon.opening"));
+                    Publish(PresenceState.Starting, T("mon.opening"));
                     try
                     {
                         grabber = await FrameGrabber.OpenAsync(camera, ct);
                         grabFailures = 0;
-                        Publish(PresenceState.Starting, L.T("mon.opened"), format: grabber.FormatDescription);
+                        Publish(PresenceState.Starting, T("mon.opened"), format: grabber.FormatDescription);
                     }
                     catch (OperationCanceledException) { throw; }
                     catch (Exception ex)
                     {
                         Log.Write("Opening the camera failed: " + ex.Message);
                         _keeper.SetPresent(false);
-                        Publish(PresenceState.CameraError, L.T("mon.camera_error", ex.Message));
+                        Publish(PresenceState.CameraError, T("mon.camera_error", ex.Message));
                         await Task.Delay(5000, ct);
                         continue;
                     }
@@ -176,7 +182,7 @@ public sealed class PresenceMonitor : IDisposable
                 {
                     grabFailures++;
                     _keeper.SetPresent(false);
-                    Publish(PresenceState.CameraError, L.T("mon.no_frames", grabFailures));
+                    Publish(PresenceState.CameraError, T("mon.no_frames", grabFailures));
                     if (grabFailures >= 3)
                     {
                         grabber.Dispose();
@@ -226,9 +232,9 @@ public sealed class PresenceMonitor : IDisposable
 
                     var msg = state switch
                     {
-                        PresenceState.NotEnrolled => L.T(face == null ? "mon.not_enrolled_nobody" : "mon.not_enrolled_face"),
-                        PresenceState.Present => L.T(injected ? "mon.present_injected" : "mon.present"),
-                        _ => L.T(face == null ? "mon.nobody" : "mon.other"),
+                        PresenceState.NotEnrolled => T(face == null ? "mon.not_enrolled_nobody" : "mon.not_enrolled_face"),
+                        PresenceState.Present => T(injected ? "mon.present_injected" : "mon.present"),
+                        _ => T(face == null ? "mon.nobody" : "mon.other"),
                     };
                     Publish(state, msg, score, DateTime.Now + delay);
                 }
@@ -243,7 +249,7 @@ public sealed class PresenceMonitor : IDisposable
         catch (Exception ex)
         {
             Log.Write("Monitoring loop crashed: " + ex);
-            Publish(PresenceState.CameraError, L.T("mon.camera_error", ex.Message));
+            Publish(PresenceState.CameraError, T("mon.camera_error", ex.Message));
         }
         finally
         {
@@ -274,7 +280,7 @@ public sealed class PresenceMonitor : IDisposable
         var sw = Stopwatch.StartNew();
         try
         {
-            Publish(PresenceState.Enrolling, L.T("mon.enrolling"));
+            Publish(PresenceState.Enrolling, T("mon.enrolling"));
             while (features.Count < job.Samples && sw.Elapsed < TimeSpan.FromSeconds(40)
                    && !job.Ct.IsCancellationRequested && !ct.IsCancellationRequested)
             {

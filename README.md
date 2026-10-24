@@ -22,7 +22,7 @@ configured.
 
 ## Features
 
-- **Recognizes you, not just any face.** You enroll once; other people in front of the camera do not keep the PC unlocked.
+- **Recognizes you, not just any face.** You scan your face once; other people in front of the camera do not keep the PC unlocked.
 - **Windows Hello IR camera preferred.** Works in the dark and is harder to fool with a picture on a screen. A regular
   webcam is used when no IR camera is available.
 - **Runs locally.** Face detection (YuNet) and recognition (SFace) run on your CPU via OpenCV. Nothing is uploaded.
@@ -30,15 +30,15 @@ configured.
 - **Uses the real Windows lock.** No custom lock screen, never unlocks anything, Win+L always works.
 - **Shows when Windows would lock** – it reads the inactivity policy, secure screen saver, display-off and sleep
   settings and counts down while you are away.
-- Tray icon with state colors, live preview with match score, built-in diagnostics, English and Czech UI, start
-  after sign-in.
+- Windows 11 look (Fluent, Mica, light and dark mode follow the system), tray icon with state colors, live preview
+  with match score, built-in diagnostics, English and Czech UI, start after sign-in.
 
 ## How it works
 
 1. A camera frame is grabbed through the WinRT `MediaFrameReader` (the only API that exposes the Windows Hello IR
    camera; DirectShow / OpenCV `VideoCapture` cannot see it). For IR cameras only illuminated frames are used.
 2. YuNet finds the largest face, the face is aligned to 112×112 and SFace turns it into a 128-dimensional embedding.
-3. The embedding is compared (cosine similarity) with your enrolled samples from the same camera.
+3. The embedding is compared (cosine similarity) with your saved face from the same camera.
 4. While you are recognized the app:
    - holds `SetThreadExecutionState(ES_DISPLAY_REQUIRED)` – keeps the display on and prevents sleep, and
    - reads the real idle time with `GetLastInputInfo`; only when you have not touched the keyboard or mouse for a while
@@ -59,7 +59,7 @@ configured.
 
 1. Download `FacePresence-<version>-win-x64.exe` from [Releases](../../releases) and run it. It is a single file, no
    installation. The first start takes a few seconds while it unpacks.
-2. The IR camera is selected automatically when present. Click **Enroll face** and look at the camera for about 5 s.
+2. The IR camera is selected automatically when present. Click **Scan my face** and look at the camera for about 5 s.
 3. Watch the score in the preview: your face should be clearly above the threshold (0.40 by default). If someone
    else gets close to it, raise the threshold to 0.45–0.50.
 4. Optionally tick **Start after Windows sign-in**.
@@ -74,7 +74,7 @@ Closing the window only hides it to the tray. Run the EXE again or double-click 
   idle lock while you are recognized.
 - **There is no liveness detection.** A good enough image of your face in front of the camera can keep the PC
   unlocked. The IR camera makes this harder, not impossible. Do not use Face Presence where that risk is not acceptable.
-- Your enrollment is stored as numeric face embeddings (no photos) in `%LOCALAPPDATA%\FacePresence\settings.json`,
+- Your face is stored as numeric face embeddings (no photos) in `%LOCALAPPDATA%\FacePresence\settings.json`,
   unencrypted, readable by your Windows account. Nothing is sent anywhere.
 - On managed devices the idle lock is usually a company policy. Make sure your organization allows tools like this.
 
@@ -83,7 +83,7 @@ Closing the window only hides it to the tray. Run the EXE again or double-click 
 - *Dynamic Lock* (lock when your Bluetooth phone leaves) and third-party idle-lock agents work independently and are
   not deferred.
 - `SendInput` is blocked by Windows when an elevated window (UAC prompt, admin app) has focus.
-- The recognition model was trained on color photos; on IR images it works well when you enroll on the same camera,
+- The recognition model was trained on color photos; on IR images it works well when you scan your face on the same camera,
   but the scores are lower than on a color camera.
 
 ## Building
@@ -99,7 +99,7 @@ EXE is unsigned. GitHub Actions build every push (`build.yml`) and publish a rel
 the release job reads the signing secrets from the `release` environment.
 
 Project layout: `Capture/` camera access, `Recognition/` face engine, `Presence/` monitoring loop, idle handling and
-lock policy detection, `UI/` WinForms windows, `Localization/` texts, `Diagnostics/` the self-test.
+lock policy detection, `UI/` WPF windows (WPF UI Fluent controls), `Localization/` texts, `Diagnostics/` the self-test.
 
 ## License
 

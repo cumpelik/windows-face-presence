@@ -4,15 +4,16 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
     <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+    <UseWPF>true</UseWPF>
+    <!-- WinForms only for the tray icon (NotifyIcon) -->
     <UseWindowsForms>true</UseWindowsForms>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
     <AssemblyName>FacePresence</AssemblyName>
     <RootNamespace>FacePresence</RootNamespace>
     <Version>0.1.0</Version>
-    <InvariantGlobalization>true</InvariantGlobalization>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <!-- allows building on Linux/macOS too (running requires Windows) -->
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
@@ -32,10 +33,20 @@
   <ItemGroup>
     <PackageReference Include="OpenCvSharp4" Version="4.13.0.20260627" />
     <PackageReference Include="OpenCvSharp4.runtime.win" Version="4.13.0.20260627" />
+    <PackageReference Include="WPF-UI" Version="4.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- WPF and WinForms types share names (Application, Button, Color, …); WinForms is imported explicitly where used. -->
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+    <!-- WPF projects drop System.IO from implicit usings; the non-UI code uses it everywhere. -->
+    <Using Include="System.IO" />
   </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="Assets\FacePresence.ico" LogicalName="app.ico" />
+    <EmbeddedResource Include="Assets\FacePresence-256.png" LogicalName="app.png" />
     <EmbeddedResource Include="Assets\tray_*.ico" LogicalName="%(Filename)%(Extension)" />
     <EmbeddedResource Include="Assets\flag_*.png" LogicalName="%(Filename)%(Extension)" />
   </ItemGroup>

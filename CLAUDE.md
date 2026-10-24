@@ -1,6 +1,6 @@
 # Face Presence
 
-Windows 11 tray app (C# / .NET 8 WinForms) that recognizes the enrolled user with the camera (Windows Hello IR camera
+Windows 11 tray app (C# / .NET 8, WPF with WPF UI Fluent controls; WinForms only for the tray NotifyIcon) that recognizes the enrolled user with the camera (Windows Hello IR camera
 preferred) and defers the automatic Windows lock while they are present. Original brief: docs/brief.md, user docs:
 README.md (English) and README.cs.md (Czech) – keep both in sync.
 
@@ -19,3 +19,7 @@ README.md (English) and README.cs.md (Czech) – keep both in sync.
 - Public repository (MIT), github.com/cumpelik/windows-face-presence. Component licenses: THIRD-PARTY-NOTICES.txt
   (embedded in the EXE, shown from About). The FFmpeg plugin of the OpenCvSharp runtime is excluded in the csproj (LGPL,
   not used) – re-check the notices whenever a dependency changes.
+- UI is WPF + WPF UI (`ui:FluentWindow`, Mica, light/dark follows the system). Texts are bound in XAML via
+  `{Binding [key], Source={x:Static loc:Loc.I}}`, so a language switch needs no rebuild. Leave layout to Grid /
+  StackPanel / UniformGrid – no code that computes sizes. WinForms and System.Drawing are not global usings
+  (type name clashes); import them explicitly where needed (tray only).
