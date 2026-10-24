@@ -40,9 +40,27 @@ public sealed class AppHost : IDisposable
         return Cameras;
     }
 
-    /// <summary>The saved camera, otherwise the first one in the list (IR cameras come first).</summary>
-    public CameraInfo? PreferredCamera() =>
-        Cameras.FirstOrDefault(c => c.SourceId == Settings.CameraSourceId) ?? Cameras.FirstOrDefault();
+    /// <summary>
+    /// The saved camera, otherwise the first one in the list (IR cameras come first). A saved IR camera that is grouped
+    /// with the color camera is replaced by a stand-alone IR camera when there is one – same picture, but checks no
+    /// longer disturb video calls.
+    /// </summary>
+    public CameraInfo? PreferredCamera()
+    {
+        var saved = Cameras.FirstOrDefault(c => c.SourceId == Settings.CameraSourceId);
+        if (saved is { IsInfrared: true, SharesDeviceWithColor: true })
+        {
+            var standalone = Cameras.FirstOrDefault(c => c.IsInfrared && !c.SharesDeviceWithColor);
+            if (standalone != null)
+            {
+                Log.Write($"Switching from {saved.DisplayName} to the stand-alone IR camera {standalone.DisplayName}");
+                Settings.CameraSourceId = standalone.SourceId;
+                Settings.Save();
+                return standalone;
+            }
+        }
+        return saved ?? Cameras.FirstOrDefault();
+    }
 
     public async Task StartAsync()
     {

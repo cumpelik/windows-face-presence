@@ -22,6 +22,7 @@ configured.
 
 ## Features
 
+- **Never disturbs video calls.** While another app uses the camera, Face Presence pauses and Windows lock as usual.
 - **Recognizes you, not just any face.** You scan your face once; other people in front of the camera do not keep the PC unlocked.
 - **Windows Hello IR camera preferred.** Works in the dark and is harder to fool with a picture on a screen. A regular
   webcam is used when no IR camera is available.
@@ -47,6 +48,8 @@ configured.
      only way to defer the *Interactive logon: Machine inactivity limit* policy, which ignores everything except input.
 5. When you leave, the camera fails, you pause the app, the session locks or the app exits, all of this stops and
    Windows locks on its own schedule. On lock the camera is released so Windows Hello can use it.
+6. While another app uses a camera (a video call), Face Presence steps aside: it releases its camera and stops
+   deferring the lock, so the call is never disturbed and Windows behaves exactly as without the app.
 
 ## Requirements
 

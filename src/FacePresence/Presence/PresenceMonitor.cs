@@ -131,6 +131,7 @@ public sealed class PresenceMonitor : IDisposable
         FrameGrabber? grabber = null;
         var grabFailures = 0;
         var openedOnce = false;
+        var inCall = false; // another app (e.g. a video call) is using a camera – we step aside
         try
         {
             while (!ct.IsCancellationRequested)
@@ -143,6 +144,34 @@ public sealed class PresenceMonitor : IDisposable
                         _locked ? T("mon.locked") : T("mon.paused"));
                     await Task.Delay(1000, ct);
                     continue;
+                }
+
+                // While another app (e.g. a video call) uses a camera, step aside completely: release our camera and stop
+                // deferring the lock – Windows (and the call app) behave exactly as without Face Presence. Touching the
+                // camera during a call makes the call's picture jump (IR and color are often one USB camera).
+                var cameraUsers = CameraUsage.OtherAppsUsingCamera();
+                if (cameraUsers.Count > 0)
+                {
+                    if (!inCall)
+                    {
+                        Log.Write($"Camera used by {string.Join(", ", cameraUsers)} – checks paused until it stops");
+                        inCall = true;
+                    }
+                    _keeper.SetPresent(false);
+                    if (grabber != null) { grabber.Dispose(); grabber = null; }
+                    if (_enroll is { } busyJob)
+                    {
+                        _enroll = null;
+                        busyJob.Tcs.TrySetResult(new EnrollResult(false, L.T("enroll.camera_busy")));
+                    }
+                    Publish(PresenceState.Paused, T("mon.camera_busy", string.Join(", ", cameraUsers)));
+                    await Task.Delay(2000, ct);
+                    continue;
+                }
+                if (inCall)
+                {
+                    Log.Write("No other app uses a camera any more – checks resumed");
+                    inCall = false;
                 }
 
                 if (grabber == null)

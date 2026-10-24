@@ -57,6 +57,10 @@ public static class Probe
         }
         W();
 
+        var users = CameraUsage.OtherAppsUsingCamera();
+        W(L.T("p.camera_users", users.Count == 0 ? L.T("p.none") : string.Join(", ", users)));
+        W();
+
         var cams = await CameraEnumerator.ListAsync();
         var toTest = cams.Where(c => c.IsInfrared).Concat(cams.Where(c => !c.IsInfrared).Take(1)).ToList();
         if (toTest.Count == 0) W(L.T("p.no_usable"));

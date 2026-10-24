@@ -22,6 +22,7 @@ nastavení.
 
 ## Funkce
 
+- **Neruší videohovory.** Když kameru používá jiná aplikace, Face Presence se pozastaví a Windows zamykají jako obvykle.
 - **Rozpozná vás, ne libovolný obličej.** Jednou si naskenujete obličej, cizí lidé před kamerou zamčení neodloží.
 - **Přednostně IR kamera Windows Hello.** Funguje i potmě a hůř se oklame obrázkem na displeji. Bez IR kamery se
   použije běžná webkamera.
@@ -47,6 +48,8 @@ nastavení.
      logon: Machine inactivity limit*, která nebere v úvahu nic jiného než vstup.
 5. Když odejdete, kamera selže, aplikaci pozastavíte, session se zamkne nebo aplikaci ukončíte, vše se zastaví a
    Windows se zamknou podle svého. Při zamčení se kamera uvolní, aby ji mohlo použít Windows Hello.
+6. Když kameru používá jiná aplikace (videohovor), Face Presence se stáhne: uvolní kameru a přestane odkládat zamčení,
+   takže hovor nikdy neruší a Windows se chovají přesně jako bez aplikace.
 
 ## Požadavky
 

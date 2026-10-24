@@ -15,6 +15,7 @@ public static class CameraEnumerator
         var groups = await MediaFrameSourceGroup.FindAllAsync();
         foreach (var group in groups)
         {
+            var hasColor = group.SourceInfos.Any(i => i.SourceKind == MediaFrameSourceKind.Color);
             foreach (var info in group.SourceInfos)
             {
                 if (info.MediaStreamType is not (MediaStreamType.VideoPreview or MediaStreamType.VideoRecord))
@@ -24,13 +25,15 @@ public static class CameraEnumerator
 
                 var isIr = info.SourceKind == MediaFrameSourceKind.Infrared;
                 var name = $"{group.DisplayName} [{(isIr ? "IR" : "Color")}, {info.MediaStreamType}]";
-                result.Add(new CameraInfo(group.Id, info.Id, name, isIr));
+                result.Add(new CameraInfo(group.Id, info.Id, name, isIr, SharesDeviceWithColor: !isIr || hasColor));
             }
         }
 
-        // IR first, prefer VideoPreview within a group; merge duplicate sources (preview + record).
+        // IR first, and an IR camera of its own before one that is grouped with the color camera (a check then never
+        // touches the color stream of a video call); prefer VideoPreview within a group; merge preview + record.
         return result
             .OrderByDescending(c => c.IsInfrared)
+            .ThenBy(c => c.SharesDeviceWithColor)
             .ThenBy(c => c.DisplayName.Contains("VideoPreview") ? 0 : 1)
             .GroupBy(c => (c.GroupId, c.IsInfrared))
             .Select(g => g.First())

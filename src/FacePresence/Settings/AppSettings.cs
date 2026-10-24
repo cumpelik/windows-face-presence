@@ -66,7 +66,10 @@ public sealed class AppSettings
         PresentIntervalSec = Math.Clamp(PresentIntervalSec, 0.5, 300);
         AbsentIntervalSec = Math.Clamp(AbsentIntervalSec, 0.2, 60);
         MatchThreshold = Math.Clamp(MatchThreshold, 0.05, 0.95);
-        KeepAliveIdleSec = Math.Clamp(KeepAliveIdleSec, 5, 600);
+        // Not editable in the UI any more; values below 20 s came from an older version (one could scroll it down by
+        // accident) and only make the app check and send input far too often – fall back to the default.
+        if (KeepAliveIdleSec < 20) KeepAliveIdleSec = 40;
+        KeepAliveIdleSec = Math.Min(KeepAliveIdleSec, 600);
         Language = Language == "cs" ? "cs" : "en";
         Templates ??= new List<FaceTemplate>();
         Templates.RemoveAll(t => t.Feature == null || t.Feature.Length == 0);
