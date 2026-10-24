@@ -17,10 +17,14 @@
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <!-- allows building on Linux/macOS too (running requires Windows) -->
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
-    <!-- single-file publish: dotnet publish -c Release -r win-x64 -->
+    <!-- One EXE with the .NET runtime inside (no runtime install needed), compressed:
+         dotnet publish -c Release -r win-x64 -->
     <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-    <SelfContained>false</SelfContained>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <!-- WFAC010: the WinForms analyzer wants DPI in code; this is a WPF app, the manifest is the right place. -->
+    <NoWarn>$(NoWarn);WFAC010</NoWarn>
     <ApplicationIcon>Assets\FacePresence.ico</ApplicationIcon>
     <Product>Face Presence</Product>
     <Description>Keeps Windows unlocked while the enrolled user is in front of the camera; locks normally otherwise.</Description>

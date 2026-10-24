@@ -4,7 +4,7 @@
 
 <p align="center">
 Keeps Windows unlocked while <b>you</b> sit in front of the camera, and lets it lock normally when you leave.<br>
-Local face recognition, Windows Hello IR camera supported, one EXE, no cloud.
+Local face recognition, Windows Hello IR camera supported, one EXE with nothing to install, no cloud.
 </p>
 
 <p align="center"><a href="README.cs.md">Česky</a></p>
@@ -51,14 +51,13 @@ configured.
 ## Requirements
 
 - Windows 11 or Windows 10 (version 2004 / build 19041 or newer), x64
-- [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) (Windows offers it on first start if missing)
 - A camera; a Windows Hello IR camera is recommended
 - Camera access for desktop apps allowed in *Settings → Privacy & security → Camera*
 
 ## Getting started
 
-1. Download `FacePresence-<version>-win-x64.exe` from [Releases](../../releases) and run it. It is a single file, no
-   installation. The first start takes a few seconds while it unpacks.
+1. Download `FacePresence-<version>-win-x64.exe` from [Releases](../../releases) and run it. It is a single file with
+   everything inside – no installation, no .NET to install. The first start takes a few seconds while it unpacks.
 2. The IR camera is selected automatically when present. Click **Scan my face** and look at the camera for about 5 s.
 3. Watch the score in the preview: your face should be clearly above the threshold (0.40 by default). If someone
    else gets close to it, raise the threshold to 0.45–0.50.

@@ -4,7 +4,7 @@
 
 <p align="center">
 Nenechá Windows zamknout, dokud před kamerou sedíte <b>vy</b>, a když odejdete, nechá je zamknout normálně.<br>
-Lokální rozpoznání obličeje, podpora IR kamery Windows Hello, jedno EXE, žádný cloud.
+Lokální rozpoznání obličeje, podpora IR kamery Windows Hello, jedno EXE bez instalace, žádný cloud.
 </p>
 
 <p align="center"><a href="README.md">English</a></p>
@@ -51,15 +51,13 @@ nastavení.
 ## Požadavky
 
 - Windows 11 nebo Windows 10 (verze 2004 / build 19041 a novější), x64
-- [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) (pokud chybí, Windows ho při prvním
-  spuštění nabídnou)
 - Kamera, doporučeně IR kamera Windows Hello
 - Povolený přístup desktopových aplikací ke kameře v *Nastavení → Ochrana osobních údajů → Kamera*
 
 ## Začínáme
 
-1. Stáhněte `FacePresence-<verze>-win-x64.exe` z [Releases](../../releases) a spusťte ho. Je to jeden soubor bez
-   instalace, první spuštění trvá pár sekund, než se rozbalí.
+1. Stáhněte `FacePresence-<verze>-win-x64.exe` z [Releases](../../releases) a spusťte ho. Je to jeden soubor, ve kterém
+   je vše – nic se neinstaluje, ani .NET. První spuštění trvá pár sekund, než se rozbalí.
 2. IR kamera se vybere automaticky. Klikněte na **Naskenovat obličej** a asi 5 s se dívejte do kamery.
 3. Sledujte skóre v náhledu: váš obličej má být zřetelně nad prahem (výchozí 0,40). Když se k němu přiblíží někdo
    jiný, zvyšte práh na 0,45–0,50.

@@ -1,4 +1,4 @@
-# Builds out/FacePresence-<version>-win-x64.exe (single-file, framework-dependent) and optionally signs it with
+# Builds out/FacePresence-<version>-win-x64.exe (single file with the .NET runtime inside) and optionally signs it with
 # Azure Artifact Signing (Trusted Signing). Signing is enabled by these environment variables:
 #   ARTIFACT_SIGNING_ENDPOINT   endpoint of the account's region, e.g. https://weu.codesigning.azure.net
 #   ARTIFACT_SIGNING_ACCOUNT    signing account name
@@ -7,8 +7,7 @@
 #                               "Artifact Signing Certificate Profile Signer"
 # Without ARTIFACT_SIGNING_ACCOUNT nothing is signed (local build).
 param(
-    [Parameter(Mandatory)] [string] $Version,
-    [switch] $SelfContained
+    [Parameter(Mandatory)] [string] $Version
 )
 $ErrorActionPreference = 'Stop'
 $root = Resolve-Path "$PSScriptRoot\..\.."
@@ -23,11 +22,10 @@ function Setting([string] $name) {
     return $value
 }
 
-Write-Host "== Publishing FacePresence $Version (win-x64, self-contained: $SelfContained)"
+Write-Host "== Publishing FacePresence $Version (win-x64, self-contained single file)"
 if (Test-Path $publish) { Remove-Item -Recurse -Force $publish }
 New-Item -ItemType Directory -Force $out | Out-Null
-dotnet publish $project -c Release -r win-x64 --self-contained:$([bool]$SelfContained) -o $publish -nologo `
-    "-p:Version=$Version" "-p:PublishSingleFile=true" "-p:IncludeNativeLibrariesForSelfExtract=true"
+dotnet publish $project -c Release -r win-x64 -o $publish -nologo "-p:Version=$Version"
 if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed" }
 Copy-Item (Join-Path $publish 'FacePresence.exe') $target -Force
 
