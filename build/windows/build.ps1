@@ -64,16 +64,6 @@ if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed" }
 Copy-Item (Join-Path $publish 'FacePresence.exe') $target -Force
 
 if ($signArgs.Count -gt 0) {
-    # Authenticode needs the file length to be a multiple of 8. The single-file bundle is appended to the EXE and its
-    # length depends on the content, so pad it with zeros (the .NET host finds the bundle by a stored offset, and the
-    # signature is appended after it anyway).
-    $length = (Get-Item $target).Length
-    $padding = (8 - $length % 8) % 8
-    if ($padding -gt 0) {
-        $stream = [IO.File]::Open($target, [IO.FileMode]::Append)
-        try { $stream.Write([byte[]]::new($padding), 0, $padding) } finally { $stream.Dispose() }
-        Write-Host "== Padded the EXE by $padding byte(s) to an 8-byte boundary"
-    }
     & $signScript -Path $target @signParams
 }
 
