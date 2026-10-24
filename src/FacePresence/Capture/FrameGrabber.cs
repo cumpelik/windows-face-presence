@@ -17,6 +17,7 @@ public sealed class FrameGrabber : IDisposable
     private readonly CameraInfo _camera;
     private TimeSpan? _lastTimestamp;
     private bool _disposed;
+    private bool _log = true;
 
     public CameraInfo Camera => _camera;
     public string FormatDescription { get; }
@@ -35,7 +36,7 @@ public sealed class FrameGrabber : IDisposable
         SharingMode = sharing;
     }
 
-    public static async Task<FrameGrabber> OpenAsync(CameraInfo camera, CancellationToken ct = default)
+    public static async Task<FrameGrabber> OpenAsync(CameraInfo camera, CancellationToken ct = default, bool log = true)
     {
         var groups = await MediaFrameSourceGroup.FindAllAsync();
         var group = groups.FirstOrDefault(g => g.Id == camera.GroupId)
@@ -96,11 +97,11 @@ public sealed class FrameGrabber : IDisposable
 
             var cur = source.CurrentFormat;
             var desc = $"{cur.Subtype} {cur.VideoFormat.Width}x{cur.VideoFormat.Height} @ {cur.FrameRate.Numerator / Math.Max(1, cur.FrameRate.Denominator)} fps";
-            Log.Write($"Camera opened: {camera.DisplayName} {desc} ({sharing})");
+            if (log) Log.Write($"Camera opened: {camera.DisplayName} {desc} ({sharing})");
             var all = source.SupportedFormats
                 .Select(f => $"{f.Subtype} {f.VideoFormat?.Width}x{f.VideoFormat?.Height}@{f.FrameRate.Numerator / Math.Max(1, f.FrameRate.Denominator)}")
                 .Distinct().ToList();
-            return new FrameGrabber(capture, reader, camera, desc, sharing) { SupportedFormats = all };
+            return new FrameGrabber(capture, reader, camera, desc, sharing) { SupportedFormats = all, _log = log };
         }
         catch
         {
@@ -193,6 +194,6 @@ public sealed class FrameGrabber : IDisposable
         try { _reader.StopAsync().AsTask().Wait(2000); } catch { }
         try { _reader.Dispose(); } catch { }
         try { _capture.Dispose(); } catch { }
-        Log.Write("Camera released: " + _camera.DisplayName);
+        if (_log) Log.Write("Camera released: " + _camera.DisplayName);
     }
 }

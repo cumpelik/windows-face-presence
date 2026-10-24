@@ -130,6 +130,7 @@ public sealed class PresenceMonitor : IDisposable
     {
         FrameGrabber? grabber = null;
         var grabFailures = 0;
+        var openedOnce = false;
         try
         {
             while (!ct.IsCancellationRequested)
@@ -146,12 +147,16 @@ public sealed class PresenceMonitor : IDisposable
 
                 if (grabber == null)
                 {
-                    Publish(PresenceState.Starting, T("mon.opening"));
+                    // The camera is reopened for every check while the user is present (see below); only the first
+                    // open is reported and logged.
+                    if (!openedOnce) Publish(PresenceState.Starting, T("mon.opening"));
                     try
                     {
-                        grabber = await FrameGrabber.OpenAsync(camera, ct);
+                        grabber = await FrameGrabber.OpenAsync(camera, ct, log: !openedOnce);
                         grabFailures = 0;
-                        Publish(PresenceState.Starting, T("mon.opened"), format: grabber.FormatDescription);
+                        if (!openedOnce) Publish(PresenceState.Starting, T("mon.opened"), format: grabber.FormatDescription);
+                        openedOnce = true;
+                        await Task.Delay(400, ct); // let exposure (and the IR illuminator) settle
                     }
                     catch (OperationCanceledException) { throw; }
                     catch (Exception ex)
@@ -176,7 +181,7 @@ public sealed class PresenceMonitor : IDisposable
                 Mat? frame = null;
                 try { frame = await grabber.GrabAsync(TimeSpan.FromSeconds(2), ct); }
                 catch (OperationCanceledException) { throw; }
-                catch (Exception ex) { Log.Write("Grab selhal: " + ex.Message); }
+                catch (Exception ex) { Log.Write("Grab failed: " + ex.Message); }
 
                 if (frame == null)
                 {
@@ -237,6 +242,14 @@ public sealed class PresenceMonitor : IDisposable
                         _ => T(face == null ? "mon.nobody" : "mon.other"),
                     };
                     Publish(state, msg, score, DateTime.Now + delay);
+                }
+
+                // Release the camera between checks that are far apart, so the IR illuminator does not blink all the
+                // time; for the fast checks (user not recognized) it stays open.
+                if (delay >= TimeSpan.FromSeconds(3) && _enroll == null)
+                {
+                    grabber.Dispose();
+                    grabber = null;
                 }
 
                 await Task.Delay(delay, ct);

@@ -79,7 +79,8 @@
       <_SignDir>$(MSBuildProjectDirectory)\$(IntermediateOutputPath)signed</_SignDir>
     </PropertyGroup>
     <ItemGroup>
-      <_FilesToSign Include="@(FilesToBundle)" Condition="'%(Extension)' == '.dll' or '%(Extension)' == '.exe'" />
+      <!-- Not the host itself (FacePresence.exe): the bundle is appended to it, so it is signed only at the very end. -->
+      <_FilesToSign Include="@(FilesToBundle)" Condition="('%(Extension)' == '.dll' or '%(Extension)' == '.exe') and '%(RelativePath)' != '$(PublishedSingleFileName)'" />
     </ItemGroup>
     <RemoveDir Directories="$(_SignDir)" />
     <Copy SourceFiles="@(_FilesToSign)" DestinationFiles="@(_FilesToSign->'$(_SignDir)\%(RelativePath)')" />
