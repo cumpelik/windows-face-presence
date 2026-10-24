@@ -74,7 +74,6 @@ public sealed class MainForm : Form
         VisibleChanged += (_, _) =>
         {
             _previewWanted = Visible;
-            if (Visible) ScheduleScrollCheck(force: true);
         };
 
         _tick.Interval = 1000;
@@ -128,6 +127,7 @@ public sealed class MainForm : Form
 
     private void RebuildUi()
     {
+        var oldRoot = Controls.Count > 0 ? Controls[0] : null;
         SuspendLayout();
         try
         {
@@ -139,7 +139,8 @@ public sealed class MainForm : Form
             OnStatus(_host.Monitor.Status);
         }
         finally { ResumeLayout(true); }
-        ScheduleScrollCheck(force: true);
+        // Shared controls (preview, combo boxes, …) were moved to the new layout; the rest of the old one can go.
+        oldRoot?.Dispose();
     }
 
     // ---------- layout ----------
@@ -327,33 +328,37 @@ public sealed class MainForm : Form
 
     private Control BuildLeftColumn()
     {
-        var col = new Panel { Dock = DockStyle.Fill, Margin = new Padding(0, 0, 12, 0) };
+        // Preview takes whatever height is left; the two cards below keep their natural height.
+        var col = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 3, Margin = new Padding(0, 0, 12, 0) };
+        col.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        col.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        col.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        col.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
-        // the preview keeps 16:9 based on the column width
-        var previewCard = new Panel { Dock = DockStyle.Top, Height = 240, BackColor = Color.FromArgb(17, 24, 39), Padding = new Padding(1) };
         _preview.Dock = DockStyle.Fill;
         _preview.SizeMode = PictureBoxSizeMode.Zoom;
-        _preview.BackColor = Color.FromArgb(17, 24, 39);
-        previewCard.Controls.Add(_preview);
+        _preview.BackColor = Theme.Window;
+        _preview.Margin = new Padding(0);
+        col.Controls.Add(_preview, 0, 0);
 
-        var camCard = new Card(L.T("card.camera")) { Dock = DockStyle.Top, Margin = new Padding(0) };
-        var camRow = new TableLayoutPanel { ColumnCount = 2, AutoSize = true, Margin = new Padding(0), Anchor = AnchorStyles.Left | AnchorStyles.Right };
+        var camCard = new Card(L.T("card.camera")) { Dock = DockStyle.Fill, Margin = new Padding(0, 12, 0, 0) };
+        var camRow = new TableLayoutPanel { ColumnCount = 2, AutoSize = true, Margin = new Padding(0) };
         camRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         camRow.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         _cbCamera.Font = Theme.Body;
-        _cbCamera.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+        _cbCamera.Dock = DockStyle.Fill;
         _cbCamera.Margin = new Padding(0, 2, 8, 0);
-        _cbCamera.Width = 120;
         camRow.Controls.Add(_cbCamera, 0, 0);
         var refresh = Theme.Secondary(L.T("btn.refresh"), async (_, _) => await _host.RefreshCamerasAsync());
         refresh.Margin = new Padding(0);
         camRow.Controls.Add(refresh, 1, 0);
         camCard.AddFull(camRow);
         camCard.AddHintFull(L.T("hint.camera"));
+        col.Controls.Add(camCard, 0, 1);
 
-        var tools = new Card(null) { Dock = DockStyle.Top, Margin = new Padding(0) };
         // three equally wide buttons in one row
-        var toolButtons = new TableLayoutPanel { AutoSize = true, ColumnCount = 3, RowCount = 1, Margin = new Padding(0, 0, 0, 4) };
+        var tools = new Card(null) { Dock = DockStyle.Fill, Margin = new Padding(0, 12, 0, 0) };
+        var toolButtons = new TableLayoutPanel { AutoSize = true, ColumnCount = 3, Margin = new Padding(0, 0, 0, 4) };
         var buttons = new[]
         {
             Theme.Secondary(L.T("btn.about"), (_, _) => ShowAbout()),
@@ -363,52 +368,27 @@ public sealed class MainForm : Form
         for (var i = 0; i < buttons.Length; i++)
         {
             toolButtons.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f / buttons.Length));
-            var b = buttons[i];
-            b.AutoSize = false;
-            b.Height = 34;
-            b.Dock = DockStyle.Fill;
-            b.AutoEllipsis = true;
-            b.Margin = new Padding(i == 0 ? 0 : 4, 0, i == buttons.Length - 1 ? 0 : 4, 0);
-            toolButtons.Controls.Add(b, i, 0);
+            buttons[i].Dock = DockStyle.Fill;
+            buttons[i].Margin = new Padding(i == 0 ? 0 : 4, 0, i == buttons.Length - 1 ? 0 : 4, 0);
+            toolButtons.Controls.Add(buttons[i], i, 0);
         }
         tools.AddFull(toolButtons);
         tools.AddHintFull(L.T("hint.app"));
-
-        // Preview 16:9 by width, but never so tall that the Camera and tools cards below it do not fit.
-        void FitPreview()
-        {
-            var byWidth = (int)(col.ClientSize.Width * 9.0 / 16.0);
-            var room = col.ClientSize.Height - camCard.Height - tools.Height - 24;
-            var h = Math.Max(120, Math.Min(byWidth, room));
-            if (previewCard.Height != h) previewCard.Height = h;
-        }
-        col.Resize += (_, _) => FitPreview();
-        camCard.SizeChanged += (_, _) => FitPreview();
-        tools.SizeChanged += (_, _) => FitPreview();
-
-        // Docking is applied from the last added control: preview on top, then Camera, then tools.
-        col.Controls.Add(tools);
-        col.Controls.Add(new Panel { Dock = DockStyle.Top, Height = 12 });
-        col.Controls.Add(camCard);
-        col.Controls.Add(new Panel { Dock = DockStyle.Top, Height = 12 });
-        col.Controls.Add(previewCard);
+        col.Controls.Add(tools, 0, 2);
         return col;
     }
 
     private Control BuildRightColumn()
     {
-        var scroller = new Panel { Dock = DockStyle.Fill, AutoScroll = false, Margin = new Padding(0) };
-        var stack = new TableLayoutPanel { Dock = DockStyle.Top, ColumnCount = 1, AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Margin = new Padding(0) };
-        _scroller = scroller;
-        _stack = stack;
-        scroller.Resize += (_, _) => ScheduleScrollCheck();
+        var scroller = new Panel { Dock = DockStyle.Fill, AutoScroll = true, Margin = new Padding(0) };
+        var stack = new TableLayoutPanel { Dock = DockStyle.Top, ColumnCount = 1, AutoSize = true, Margin = new Padding(0) };
         stack.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
 
         // --- Enrollment ---
         var enroll = new Card(L.T("card.enroll"));
         _lblTemplates.AutoSize = true;
         _lblTemplates.Margin = new Padding(0, 0, 0, 10);
-        enroll.AddWrappingFull(_lblTemplates);
+        enroll.AddFull(_lblTemplates);
         var enrollButtons = new FlowLayoutPanel { AutoSize = true, Margin = new Padding(0) };
         _btnEnroll = Theme.Primary(L.T(_enrollCts != null ? "btn.enroll_cancel" : "btn.enroll"), async (_, _) => await EnrollAsync());
         _btnClear = Theme.Secondary(L.T("btn.clear"), (_, _) => ClearTemplates());
@@ -427,51 +407,15 @@ public sealed class MainForm : Form
         stack.Controls.Add(presence);
 
         // --- Application ---
-        var app = new Card(L.T("card.app"));
+        var app = new Card(L.T("card.app")) { Margin = new Padding(0) };
         _chkAutostart.Text = L.T("chk.autostart");
         _chkAutostart.AutoSize = true;
         _chkAutostart.Margin = new Padding(0, 0, 0, 2);
         app.AddFull(_chkAutostart);
-        app.Margin = new Padding(0);
         stack.Controls.Add(app);
 
         scroller.Controls.Add(stack);
         return scroller;
-    }
-
-    private Panel? _scroller;
-    private TableLayoutPanel? _stack;
-    private bool _scrollCheckPending;
-
-    private System.Drawing.Size _lastScrollCheckSize;
-
-    private void ScheduleScrollCheck(bool force = false)
-    {
-        if (force) _lastScrollCheckSize = System.Drawing.Size.Empty;
-        if (_scrollCheckPending || !IsHandleCreated || WindowState == FormWindowState.Minimized) return;
-        _scrollCheckPending = true;
-        BeginInvoke(() =>
-        {
-            _scrollCheckPending = false;
-            UpdateScrollbar();
-        });
-    }
-
-    /// <summary>
-    /// WinForms AutoScroll "keeps" its scrollbar: it narrows the content, hints wrap to more lines and the content really
-    /// overflows. So the content height is measured at full width and the scrollbar is enabled only when it does not fit.
-    /// Runs only when the outer panel size really changes – toggling the scrollbar does not change it, so it cannot loop.
-    /// </summary>
-    private void UpdateScrollbar()
-    {
-        if (_scroller == null || _stack == null || _scroller.IsDisposed || WindowState == FormWindowState.Minimized) return;
-        if (_scroller.Size == _lastScrollCheckSize || _scroller.Width < 50 || _scroller.Height < 50) return;
-        _lastScrollCheckSize = _scroller.Size;
-        _scroller.AutoScroll = false;
-        _stack.PerformLayout();
-        foreach (Control c in _stack.Controls) c.PerformLayout(); // Card.OnLayout recalculates the hint widths
-        _stack.PerformLayout();
-        if (_stack.Height > _scroller.ClientSize.Height) _scroller.AutoScroll = true;
     }
 
     // ---------- settings <-> controls ----------
@@ -720,7 +664,6 @@ public sealed class MainForm : Form
         {
             Log.Write($"Window state {_lastWindowState} -> {WindowState}");
             _lastWindowState = WindowState;
-            if (WindowState != FormWindowState.Minimized) ScheduleScrollCheck(force: true);
         }
     }
 

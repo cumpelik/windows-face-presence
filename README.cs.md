@@ -9,6 +9,8 @@ Lokální rozpoznání obličeje, podpora IR kamery Windows Hello, jedno EXE, ž
 
 <p align="center"><a href="README.md">English</a></p>
 
+<p align="center"><img src="docs/screenshot.png" width="760" alt="Hlavní okno Face Presence"></p>
+
 ---
 
 ## Proč

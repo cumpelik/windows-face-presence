@@ -9,6 +9,8 @@ Local face recognition, Windows Hello IR camera supported, one EXE, no cloud.
 
 <p align="center"><a href="README.cs.md">Česky</a></p>
 
+<p align="center"><img src="docs/screenshot.png" width="760" alt="Face Presence main window"></p>
+
 ---
 
 ## Why

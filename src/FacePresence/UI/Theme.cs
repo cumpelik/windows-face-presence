@@ -119,11 +119,10 @@ internal static class WheelGuard
     }
 }
 
-/// <summary>White card with a title, a 1 px border and a two-column label / control grid.</summary>
+/// <summary>White card with an optional title, a 1 px border and a two-column label / control grid.</summary>
 internal sealed class Card : TableLayoutPanel
 {
     private const int LabelColumnWidth = 230;
-    private readonly List<(Label label, bool full)> _hints = new();
 
     public Card(string? title)
     {
@@ -139,15 +138,14 @@ internal sealed class Card : TableLayoutPanel
         SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint, true);
 
         if (title == null) return;
-        var heading = new Label
+        AddFull(new Label
         {
             Text = title,
             Font = Theme.CardTitle,
             ForeColor = Theme.Text,
             AutoSize = true,
             Margin = new Padding(0, 0, 0, 8),
-        };
-        AddFull(heading);
+        });
     }
 
     public void AddRow(string label, Control control, string? hint = null)
@@ -167,63 +165,32 @@ internal sealed class Card : TableLayoutPanel
         control.Anchor = AnchorStyles.Left;
         control.Margin = new Padding(0, 3, 0, 3);
         Controls.Add(control, 1, row);
-        if (hint != null) AddHint(hint);
+        if (hint != null) AddCell(Hint(text: hint, bottom: 6), column: 1, span: 1);
     }
 
-    public void AddFull(Control control)
+    /// <summary>A control spanning both columns. Labels fill the cell, so the table wraps them to the card width.</summary>
+    public void AddFull(Control control) => AddCell(control, column: 0, span: 2);
+
+    public void AddHintFull(string text) => AddFull(Hint(text, bottom: 4));
+
+    private void AddCell(Control control, int column, int span)
     {
         var row = RowCount++;
         RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        control.Anchor = AnchorStyles.Left | AnchorStyles.Right;
-        Controls.Add(control, 0, row);
-        SetColumnSpan(control, 2);
+        if (control is Label) control.Dock = DockStyle.Fill;
+        else control.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+        Controls.Add(control, column, row);
+        SetColumnSpan(control, span);
     }
 
-    /// <summary>Label spanning both columns whose width follows the card width (wraps instead of overflowing).</summary>
-    public void AddWrappingFull(Label lbl)
-    {
-        _hints.Add((lbl, true));
-        AddFull(lbl);
-    }
-
-    public void AddHintFull(string text)
-    {
-        var lbl = HintLabel(text);
-        _hints.Add((lbl, true));
-        AddFull(lbl);
-    }
-
-    protected override void OnLayout(LayoutEventArgs e)
-    {
-        // An AutoSize label would otherwise grow to its MaximumSize and the card would overflow the column – bind hint widths to the card width.
-        var inner = Math.Max(120, ClientSize.Width - Padding.Horizontal);
-        foreach (var (label, full) in _hints)
-        {
-            var w = full ? inner : Math.Max(120, inner - LabelColumnWidth);
-            if (label.MaximumSize.Width != w) label.MaximumSize = new Size(w, 0);
-        }
-        base.OnLayout(e);
-    }
-
-    private static Label HintLabel(string text) => new()
+    private static Label Hint(string text, int bottom) => new()
     {
         Text = text,
         AutoSize = true,
         Font = Theme.Small,
         ForeColor = Theme.Muted,
-        MaximumSize = new Size(320, 0),
-        Margin = new Padding(0, 2, 0, 4),
+        Margin = new Padding(0, 2, 0, bottom),
     };
-
-    public void AddHint(string text)
-    {
-        var lbl = HintLabel(text);
-        lbl.Margin = new Padding(0, 0, 0, 6);
-        _hints.Add((lbl, false));
-        var row = RowCount++;
-        RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        Controls.Add(lbl, 1, row);
-    }
 
     protected override void OnPaint(PaintEventArgs e)
     {

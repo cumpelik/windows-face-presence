@@ -41,17 +41,20 @@ public sealed class ProbeForm : Form
         {
             Text = L.T("probe.intro").Trim(),
             AutoSize = true,
-            Dock = DockStyle.Top,
+            Dock = DockStyle.Fill, // fills the table cell, so the table wraps it to the window width
             ForeColor = Theme.Text,
-            Padding = new Padding(12, 12, 12, 8),
+            Margin = new Padding(12, 12, 12, 8),
         };
-        Resize += (_, _) => intro.MaximumSize = new System.Drawing.Size(Math.Max(200, ClientSize.Width), 0);
-        intro.MaximumSize = new System.Drawing.Size(ClientSize.Width, 0);
+        _output.Margin = new Padding(10, 0, 10, 0);
 
-        var frame = new Panel { Dock = DockStyle.Fill, Padding = new Padding(10, 0, 10, 0), BackColor = Theme.Window };
-        frame.Controls.Add(_output);
-        Controls.Add(frame);
-        Controls.Add(intro);
+        var layout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2, BackColor = Theme.Window };
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        layout.Controls.Add(intro, 0, 0);
+        layout.Controls.Add(_output, 0, 1);
+
+        Controls.Add(layout);
         Controls.Add(bar);
     }
 
