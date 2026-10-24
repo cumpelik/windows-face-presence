@@ -125,7 +125,7 @@ internal sealed class Card : TableLayoutPanel
     private const int LabelColumnWidth = 230;
     private readonly List<(Label label, bool full)> _hints = new();
 
-    public Card(string title)
+    public Card(string? title)
     {
         BackColor = Theme.Card;
         ColumnCount = 2;
@@ -138,6 +138,7 @@ internal sealed class Card : TableLayoutPanel
         ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint, true);
 
+        if (title == null) return;
         var heading = new Label
         {
             Text = title,

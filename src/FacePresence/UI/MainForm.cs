@@ -146,20 +146,71 @@ public sealed class MainForm : Form
 
     private void BuildLayout()
     {
-        var root = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2, BackColor = Theme.Window };
+        var root = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 3, BackColor = Theme.Window };
+        root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         root.Controls.Add(BuildHeader(), 0, 0);
 
-        var content = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, Padding = new Padding(16, 12, 16, 16), BackColor = Theme.Window };
+        var content = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, Padding = new Padding(16, 12, 16, 12), BackColor = Theme.Window };
         content.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 44));
         content.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 56));
         content.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         content.Controls.Add(BuildLeftColumn(), 0, 0);
         content.Controls.Add(BuildRightColumn(), 1, 0);
         root.Controls.Add(content, 0, 1);
+        root.Controls.Add(BuildFooter(), 0, 2);
 
         Controls.Add(root);
+    }
+
+    /// <summary>Nenápadný pruh s poděkováním dole v okně.</summary>
+    private Control BuildFooter()
+    {
+        var claude = L.T("footer.claude");
+        var tabidoo = L.T("footer.tabidoo");
+        var text = L.T("footer.text", claude, tabidoo);
+        var link = new LinkLabel
+        {
+            Text = text,
+            AutoSize = true,
+            Font = Theme.Small,
+            ForeColor = Theme.Muted,
+            LinkColor = Theme.Accent,
+            ActiveLinkColor = Theme.AccentHover,
+            VisitedLinkColor = Theme.Accent,
+            LinkBehavior = LinkBehavior.HoverUnderline,
+            Anchor = AnchorStyles.None,
+            Margin = new Padding(0),
+            UseMnemonic = false,
+        };
+        link.Links.Clear();
+        link.Links.Add(text.IndexOf(claude, StringComparison.Ordinal), claude.Length, "https://claude.ai");
+        link.Links.Add(text.IndexOf(tabidoo, StringComparison.Ordinal), tabidoo.Length, "https://tabidoo.cloud");
+        link.LinkClicked += (_, e) =>
+        {
+            try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo((string)e.Link!.LinkData!) { UseShellExecute = true }); }
+            catch (Exception ex) { Log.Write("Open link: " + ex.Message); }
+        };
+
+        var footer = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            AutoSize = true,
+            ColumnCount = 1,
+            BackColor = Theme.Card,
+            Padding = new Padding(16, 8, 16, 8),
+            Margin = new Padding(0),
+        };
+        footer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        footer.Paint += (_, e) =>
+        {
+            using var pen = new Pen(Theme.Border);
+            e.Graphics.DrawLine(pen, 0, 0, footer.Width, 0);
+        };
+        footer.Controls.Add(link, 0, 0);
+        return footer;
     }
 
     private Control BuildHeader()
@@ -195,7 +246,7 @@ public sealed class MainForm : Form
         _lblState.AutoSize = true;
         _lblState.Font = Theme.Title;
         if (string.IsNullOrEmpty(_lblState.Text)) _lblState.Text = L.T("state.starting");
-        _lblState.Margin = new Padding(0, 0, 0, 0);
+        _lblState.Margin = new Padding(0);
         _lblMessage.AutoSize = true;
         _lblMessage.ForeColor = Theme.Muted;
         _lblMessage.Margin = new Padding(1, 0, 0, 0);
@@ -203,19 +254,37 @@ public sealed class MainForm : Form
         texts.Controls.Add(_lblMessage);
         header.Controls.Add(texts, 1, 0);
 
-        var actions = new FlowLayoutPanel { AutoSize = true, WrapContents = false, Margin = new Padding(12, 0, 0, 0), FlowDirection = FlowDirection.LeftToRight, Anchor = AnchorStyles.Right };
-        var flags = new FlowLayoutPanel { AutoSize = true, WrapContents = false, Margin = new Padding(0, 6, 14, 0) };
+        var flags = new FlowLayoutPanel { AutoSize = true, WrapContents = false, Margin = new Padding(12, 2, 0, 0), Anchor = AnchorStyles.Top | AnchorStyles.Right };
         flags.Controls.Add(_flagEn);
         flags.Controls.Add(_flagCs);
+        _flagCs.Margin = new Padding(0);
         RenderFlags();
-        actions.Controls.Add(flags);
-        _btnPause = Theme.Secondary(L.T(_host.Monitor.IsPaused ? "btn.resume" : "btn.pause"), (_, _) => PauseToggleRequested?.Invoke());
-        actions.Controls.Add(_btnPause);
-        actions.Controls.Add(Theme.Secondary(L.T("btn.diagnostics"), (_, _) => new ProbeForm(_host).Show(this)));
-        header.Controls.Add(actions, 2, 0);
+        header.Controls.Add(flags, 2, 0);
 
-        header.Controls.Add(BuildStatsStrip(), 0, 1);
-        header.SetColumnSpan(header.GetControlFromPosition(0, 1)!, 3);
+        // řádek statistik + Pozastavit vpravo, s linkou nahoře
+        var statsRow = new TableLayoutPanel
+        {
+            AutoSize = true,
+            ColumnCount = 2,
+            Margin = new Padding(0, 10, 0, 0),
+            Padding = new Padding(0, 8, 0, 8),
+            Anchor = AnchorStyles.Left | AnchorStyles.Right,
+        };
+        statsRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        statsRow.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        statsRow.Paint += (_, e) =>
+        {
+            using var pen = new Pen(Theme.Border);
+            e.Graphics.DrawLine(pen, 0, 0, statsRow.Width, 0);
+        };
+        var strip = BuildStatsStrip();
+        statsRow.Controls.Add(strip, 0, 0);
+        _btnPause = Theme.Secondary(L.T(_host.Monitor.IsPaused ? "btn.resume" : "btn.pause"), (_, _) => PauseToggleRequested?.Invoke());
+        _btnPause.Anchor = AnchorStyles.Right;
+        _btnPause.Margin = new Padding(12, 0, 0, 0);
+        statsRow.Controls.Add(_btnPause, 1, 0);
+        header.Controls.Add(statsRow, 0, 1);
+        header.SetColumnSpan(statsRow, 3);
         return header;
     }
 
@@ -227,14 +296,8 @@ public sealed class MainForm : Form
             AutoSize = true,
             ColumnCount = 6,
             RowCount = 2,
-            Margin = new Padding(0, 10, 0, 0),
-            Padding = new Padding(0, 8, 0, 8),
+            Margin = new Padding(0),
             Anchor = AnchorStyles.Left | AnchorStyles.Right,
-        };
-        strip.Paint += (_, e) =>
-        {
-            using var pen = new Pen(Theme.Border);
-            e.Graphics.DrawLine(pen, 0, 0, strip.Width, 0);
         };
         strip.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         strip.RowStyles.Add(new RowStyle(SizeType.AutoSize));
@@ -272,11 +335,6 @@ public sealed class MainForm : Form
         _preview.SizeMode = PictureBoxSizeMode.Zoom;
         _preview.BackColor = Color.FromArgb(17, 24, 39);
         previewCard.Controls.Add(_preview);
-        col.Resize += (_, _) =>
-        {
-            var h = Math.Max(160, (int)(col.ClientSize.Width * 9.0 / 16.0));
-            if (previewCard.Height != h) previewCard.Height = h;
-        };
 
         var camCard = new Card(L.T("card.camera")) { Dock = DockStyle.Top, Margin = new Padding(0) };
         var camRow = new TableLayoutPanel { ColumnCount = 2, AutoSize = true, Margin = new Padding(0), Anchor = AnchorStyles.Left | AnchorStyles.Right };
@@ -293,7 +351,44 @@ public sealed class MainForm : Form
         camCard.AddFull(camRow);
         camCard.AddHintFull(L.T("hint.camera"));
 
-        // Dock se vyhodnocuje od posledně přidaného: náhled nahoře, pod ním mezera, pak karta Kamera.
+        var tools = new Card(null) { Dock = DockStyle.Top, Margin = new Padding(0) };
+        // tři stejně široká tlačítka v jedné řadě
+        var toolButtons = new TableLayoutPanel { AutoSize = true, ColumnCount = 3, RowCount = 1, Margin = new Padding(0, 0, 0, 4) };
+        var buttons = new[]
+        {
+            Theme.Secondary(L.T("btn.about"), (_, _) => ShowAbout()),
+            Theme.Secondary(L.T("btn.data_folder"), (_, _) => OpenDataFolder()),
+            Theme.Secondary(L.T("btn.diagnostics"), (_, _) => new ProbeForm(_host).Show(this)),
+        };
+        for (var i = 0; i < buttons.Length; i++)
+        {
+            toolButtons.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f / buttons.Length));
+            var b = buttons[i];
+            b.AutoSize = false;
+            b.Height = 34;
+            b.Dock = DockStyle.Fill;
+            b.AutoEllipsis = true;
+            b.Margin = new Padding(i == 0 ? 0 : 4, 0, i == buttons.Length - 1 ? 0 : 4, 0);
+            toolButtons.Controls.Add(b, i, 0);
+        }
+        tools.AddFull(toolButtons);
+        tools.AddHintFull(L.T("hint.app"));
+
+        // Náhled 16:9 podle šířky, ale nikdy tak vysoký, aby pod ním karty Kamera a nástroje nevešly.
+        void FitPreview()
+        {
+            var byWidth = (int)(col.ClientSize.Width * 9.0 / 16.0);
+            var room = col.ClientSize.Height - camCard.Height - tools.Height - 24;
+            var h = Math.Max(120, Math.Min(byWidth, room));
+            if (previewCard.Height != h) previewCard.Height = h;
+        }
+        col.Resize += (_, _) => FitPreview();
+        camCard.SizeChanged += (_, _) => FitPreview();
+        tools.SizeChanged += (_, _) => FitPreview();
+
+        // Dock se vyhodnocuje od posledně přidaného: náhled nahoře, pod ním Kamera, pak nástroje.
+        col.Controls.Add(tools);
+        col.Controls.Add(new Panel { Dock = DockStyle.Top, Height = 12 });
         col.Controls.Add(camCard);
         col.Controls.Add(new Panel { Dock = DockStyle.Top, Height = 12 });
         col.Controls.Add(previewCard);
@@ -335,13 +430,8 @@ public sealed class MainForm : Form
         var app = new Card(L.T("card.app"));
         _chkAutostart.Text = L.T("chk.autostart");
         _chkAutostart.AutoSize = true;
-        _chkAutostart.Margin = new Padding(0, 0, 0, 8);
+        _chkAutostart.Margin = new Padding(0, 0, 0, 2);
         app.AddFull(_chkAutostart);
-        var appButtons = new FlowLayoutPanel { AutoSize = true, Margin = new Padding(0) };
-        appButtons.Controls.Add(Theme.Secondary(L.T("btn.data_folder"), (_, _) => OpenDataFolder()));
-        appButtons.Controls.Add(Theme.Secondary(L.T("btn.about"), (_, _) => ShowAbout()));
-        app.AddFull(appButtons);
-        app.AddHintFull(L.T("hint.app"));
         app.Margin = new Padding(0);
         stack.Controls.Add(app);
 

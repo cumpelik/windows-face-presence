@@ -30,7 +30,6 @@ public sealed class ProbeForm : Form
         _output.Dock = DockStyle.Fill;
         _output.BorderStyle = BorderStyle.None;
         _output.BackColor = Theme.Card;
-        _output.Text = L.T("probe.intro");
 
         var bar = new FlowLayoutPanel { Dock = DockStyle.Bottom, AutoSize = true, Padding = new Padding(10, 8, 10, 8), BackColor = Theme.Window };
         _run = Theme.Primary(L.T("btn.run"), async (_, _) => await RunAsync());
@@ -38,9 +37,21 @@ public sealed class ProbeForm : Form
         bar.Controls.Add(_run);
         bar.Controls.Add(_copy);
 
-        var frame = new Panel { Dock = DockStyle.Fill, Padding = new Padding(10, 10, 10, 0), BackColor = Theme.Window };
+        var intro = new Label
+        {
+            Text = L.T("probe.intro").Trim(),
+            AutoSize = true,
+            Dock = DockStyle.Top,
+            ForeColor = Theme.Text,
+            Padding = new Padding(12, 12, 12, 8),
+        };
+        Resize += (_, _) => intro.MaximumSize = new System.Drawing.Size(Math.Max(200, ClientSize.Width), 0);
+        intro.MaximumSize = new System.Drawing.Size(ClientSize.Width, 0);
+
+        var frame = new Panel { Dock = DockStyle.Fill, Padding = new Padding(10, 0, 10, 0), BackColor = Theme.Window };
         frame.Controls.Add(_output);
         Controls.Add(frame);
+        Controls.Add(intro);
         Controls.Add(bar);
     }
 

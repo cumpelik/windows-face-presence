@@ -74,7 +74,7 @@ public static class L
         ["btn.enroll"] = ("Enroll face", "Registrovat obličej"),
         ["btn.enroll_cancel"] = ("Cancel enrollment", "Zrušit registraci"),
         ["btn.clear"] = ("Clear enrollment", "Smazat registraci"),
-        ["btn.data_folder"] = ("Open data folder", "Otevřít složku s daty"),
+        ["btn.data_folder"] = ("Data folder", "Složka s daty"),
         ["btn.about"] = ("About", "O aplikaci"),
         ["btn.run"] = ("Run diagnostics", "Spustit diagnostiku"),
         ["btn.copy"] = ("Copy to clipboard", "Kopírovat do schránky"),
@@ -122,6 +122,11 @@ public static class L
         ["dlg.about"] = ("About", "O aplikaci"),
         ["about.text"] = ("Face Presence {0}\n\nRecognizes the enrolled user with the camera (Windows Hello IR or a webcam) and defers the automatic Windows lock while you sit at the computer.\n\nDetection: YuNet, recognition: SFace (OpenCV Zoo), everything runs offline.\nData: {1}",
                           "Face Presence {0}\n\nLokální rozpoznání registrovaného uživatele kamerou (IR Windows Hello nebo webkamera) a odkládání automatického zamčení Windows, dokud sedíte u počítače.\n\nDetekce: YuNet, rozpoznání: SFace (OpenCV Zoo), vše běží offline.\nData: {1}"),
+
+        // --- patička ---
+        ["footer.text"] = ("Built together with {0}  ·  Thanks to {1} for letting its people build utilities like this", "Vytvořeno ve spolupráci s {0}  ·  Díky {1}, že svým lidem umožňuje tvořit i takové utility"),
+        ["footer.claude"] = ("Claude by Anthropic", "Claude od Anthropicu"),
+        ["footer.tabidoo"] = ("tabidoo.cloud", "tabidoo.cloud"),
 
         // --- tray ---
         ["tray.open"] = ("Open", "Otevřít"),
