@@ -68,6 +68,28 @@
     </ItemGroup>
   </Target>
 
+  <!--
+    Release signing (only when build.ps1 passes SignFilesScript): native libraries are extracted from the single-file
+    bundle to %TEMP% at run time and Smart App Control blocks unsigned ones (OpenCvSharpExtern.dll). So copies of the
+    bundled .dll/.exe files are signed (only the unsigned ones) and bundled instead of the originals.
+  -->
+  <Target Name="SignFilesToBundle" AfterTargets="PrepareForBundle" BeforeTargets="_GenerateSingleFileBundleInputCache"
+          Condition="'$(PublishSingleFile)' == 'true' and '$(SignFilesScript)' != ''">
+    <PropertyGroup>
+      <_SignDir>$(MSBuildProjectDirectory)\$(IntermediateOutputPath)signed</_SignDir>
+    </PropertyGroup>
+    <ItemGroup>
+      <_FilesToSign Include="@(FilesToBundle)" Condition="'%(Extension)' == '.dll' or '%(Extension)' == '.exe'" />
+    </ItemGroup>
+    <RemoveDir Directories="$(_SignDir)" />
+    <Copy SourceFiles="@(_FilesToSign)" DestinationFiles="@(_FilesToSign->'$(_SignDir)\%(RelativePath)')" />
+    <Exec Command="pwsh -NoProfile -ExecutionPolicy Bypass -File &quot;$(SignFilesScript)&quot; -Path &quot;$(_SignDir)&quot; -SignTool &quot;$(SignToolExe)&quot; -Dlib &quot;$(SignDlib)&quot; -Metadata &quot;$(SignMetadata)&quot;" />
+    <ItemGroup>
+      <FilesToBundle Remove="@(_FilesToSign)" />
+      <FilesToBundle Include="@(_FilesToSign->'$(_SignDir)\%(RelativePath)')" />
+    </ItemGroup>
+  </Target>
+
   <ItemGroup>
     <!-- Models from the OpenCV Zoo: YuNet (detection, MIT) and SFace (embedding, Apache-2.0) -->
     <EmbeddedResource Include="Models\face_detection_yunet_2023mar.onnx" LogicalName="yunet.onnx" />

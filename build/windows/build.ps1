@@ -22,13 +22,7 @@ function Setting([string] $name) {
     return $value
 }
 
-Write-Host "== Publishing FacePresence $Version (win-x64, self-contained single file)"
-if (Test-Path $publish) { Remove-Item -Recurse -Force $publish }
-New-Item -ItemType Directory -Force $out | Out-Null
-dotnet publish $project -c Release -r win-x64 -o $publish -nologo "-p:Version=$Version"
-if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed" }
-Copy-Item (Join-Path $publish 'FacePresence.exe') $target -Force
-
+$signArgs = @()
 if (Setting 'ARTIFACT_SIGNING_ACCOUNT') {
     foreach ($name in 'ARTIFACT_SIGNING_ENDPOINT', 'ARTIFACT_SIGNING_PROFILE', 'AZURE_TENANT_ID', 'AZURE_CLIENT_ID', 'AZURE_CLIENT_SECRET') {
         if (-not (Setting $name)) { throw "ARTIFACT_SIGNING_ACCOUNT is set, but $name is missing" }
@@ -54,14 +48,23 @@ if (Setting 'ARTIFACT_SIGNING_ACCOUNT') {
             'VisualStudioCodeCredential', 'AzureCliCredential', 'AzurePowerShellCredential', 'AzureDeveloperCliCredential', 'InteractiveBrowserCredential')
     } | ConvertTo-Json | ForEach-Object { [IO.File]::WriteAllText($metadata, $_) } # no BOM - the plugin does not read it
 
-    Write-Host "== Signing $target"
-    & $signTool.FullName sign /v /fd SHA256 /tr 'http://timestamp.acs.microsoft.com' /td SHA256 /dlib $dlib.FullName /dmdf $metadata $target
-    if ($LASTEXITCODE -ne 0) { throw "signing failed" }
-    $sig = Get-AuthenticodeSignature $target
-    if ($sig.Status -ne 'Valid') { throw "signature is not valid: $($sig.Status) $($sig.StatusMessage)" }
-    Write-Host "== Signed by $($sig.SignerCertificate.Subject)"
+    $signScript = Join-Path $PSScriptRoot 'sign-files.ps1'
+    $signParams = @{ SignTool = $signTool.FullName; Dlib = $dlib.FullName; Metadata = $metadata }
+    # The csproj target SignFilesToBundle signs the unsigned DLLs before they go into the single-file bundle.
+    $signArgs = @("-p:SignFilesScript=$signScript", "-p:SignToolExe=$($signTool.FullName)", "-p:SignDlib=$($dlib.FullName)", "-p:SignMetadata=$metadata")
 } else {
-    Write-Host "== ARTIFACT_SIGNING_ACCOUNT not set – the EXE stays unsigned"
+    Write-Host "== ARTIFACT_SIGNING_ACCOUNT not set – nothing is signed"
+}
+
+Write-Host "== Publishing FacePresence $Version (win-x64, self-contained single file)"
+if (Test-Path $publish) { Remove-Item -Recurse -Force $publish }
+New-Item -ItemType Directory -Force $out | Out-Null
+dotnet publish $project -c Release -r win-x64 -o $publish -nologo "-p:Version=$Version" @signArgs
+if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed" }
+Copy-Item (Join-Path $publish 'FacePresence.exe') $target -Force
+
+if ($signArgs.Count -gt 0) {
+    & $signScript -Path $target @signParams
 }
 
 $hash = (Get-FileHash $target -Algorithm SHA256).Hash.ToLowerInvariant()
