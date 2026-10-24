@@ -95,7 +95,8 @@ pwsh build/windows/build.ps1 -Version 0.1.0     # -> out/FacePresence-0.1.0-win-
 
 The build also works on Linux/macOS (`EnableWindowsTargeting`), running requires Windows. `build.ps1` signs the EXE
 with Azure Artifact Signing when the `ARTIFACT_SIGNING_*` and `AZURE_*` environment variables are set; without them the
-EXE is unsigned. GitHub Actions build every push (`build.yml`) and publish a release for every `v*` tag (`release.yml`).
+EXE is unsigned. GitHub Actions build every push (`build.yml`) and publish a release for every `v*` tag (`release.yml`);
+the release job reads the signing secrets from the `release` environment.
 
 Project layout: `Capture/` camera access, `Recognition/` face engine, `Presence/` monitoring loop, idle handling and
 lock policy detection, `UI/` WinForms windows, `Localization/` texts, `Diagnostics/` the self-test.

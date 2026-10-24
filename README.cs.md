@@ -97,7 +97,8 @@ pwsh build/windows/build.ps1 -Version 0.1.0     # -> out/FacePresence-0.1.0-win-
 
 Build funguje i na Linuxu a macOS (`EnableWindowsTargeting`), spuštění vyžaduje Windows. `build.ps1` podepíše EXE přes
 Azure Artifact Signing, když jsou nastavené proměnné prostředí `ARTIFACT_SIGNING_*` a `AZURE_*`; bez nich zůstane EXE
-nepodepsané. GitHub Actions staví každý push (`build.yml`) a pro každý tag `v*` vydají release (`release.yml`).
+nepodepsané. GitHub Actions staví každý push (`build.yml`) a pro každý tag `v*` vydají release (`release.yml`);
+secrets pro podpis bere release z prostředí `release`.
 
 ## Licence
 

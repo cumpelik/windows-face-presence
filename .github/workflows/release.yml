@@ -1,8 +1,9 @@
 name: Release
 
 # Tag v1.2.3 -> FacePresence-1.2.3-win-x64.exe as a GitHub Release.
-# Optional signing secrets (Settings -> Secrets and variables -> Actions): ARTIFACT_SIGNING_ENDPOINT,
-# ARTIFACT_SIGNING_ACCOUNT, ARTIFACT_SIGNING_PROFILE, AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET.
+# Signing settings live in the "release" environment (Settings -> Environments -> release), which only tags v* may use:
+#   variables: ARTIFACT_SIGNING_ENDPOINT, ARTIFACT_SIGNING_ACCOUNT, ARTIFACT_SIGNING_PROFILE, AZURE_TENANT_ID, AZURE_CLIENT_ID
+#   secret:    AZURE_CLIENT_SECRET
 # Without them the release is unsigned.
 on:
   push:
@@ -14,6 +15,7 @@ permissions:
 jobs:
   release:
     runs-on: windows-latest
+    environment: release
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -27,11 +29,11 @@ jobs:
         shell: pwsh
         run: build/windows/build.ps1 -Version ${{ steps.v.outputs.version }}
         env:
-          ARTIFACT_SIGNING_ENDPOINT: ${{ secrets.ARTIFACT_SIGNING_ENDPOINT }}
-          ARTIFACT_SIGNING_ACCOUNT: ${{ secrets.ARTIFACT_SIGNING_ACCOUNT }}
-          ARTIFACT_SIGNING_PROFILE: ${{ secrets.ARTIFACT_SIGNING_PROFILE }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARTIFACT_SIGNING_ENDPOINT: ${{ vars.ARTIFACT_SIGNING_ENDPOINT }}
+          ARTIFACT_SIGNING_ACCOUNT: ${{ vars.ARTIFACT_SIGNING_ACCOUNT }}
+          ARTIFACT_SIGNING_PROFILE: ${{ vars.ARTIFACT_SIGNING_PROFILE }}
+          AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
       - uses: softprops/action-gh-release@v2
         with:
