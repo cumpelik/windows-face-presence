@@ -1,0 +1,41 @@
+name: Release
+
+# Tag v1.2.3 -> podepsané FacePresence-1.2.3-win-x64.exe jako GitHub Release.
+# Secrets (Settings -> Secrets and variables -> Actions): ARTIFACT_SIGNING_ENDPOINT, ARTIFACT_SIGNING_ACCOUNT,
+# ARTIFACT_SIGNING_PROFILE, AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET (stejné hodnoty jako v Azure DevOps
+# variable group pro BsonJet). Bez nich se release vytvoří nepodepsaný.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Version from tag
+        id: v
+        shell: pwsh
+        run: '"version=$($env:GITHUB_REF_NAME.TrimStart(''v''))" | Out-File -Append $env:GITHUB_OUTPUT'
+      - name: Build and sign
+        shell: pwsh
+        run: build/windows/build.ps1 -Version ${{ steps.v.outputs.version }}
+        env:
+          ARTIFACT_SIGNING_ENDPOINT: ${{ secrets.ARTIFACT_SIGNING_ENDPOINT }}
+          ARTIFACT_SIGNING_ACCOUNT: ${{ secrets.ARTIFACT_SIGNING_ACCOUNT }}
+          ARTIFACT_SIGNING_PROFILE: ${{ secrets.ARTIFACT_SIGNING_PROFILE }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            out/FacePresence-*.exe
+            out/FacePresence-*.exe.sha256
+          generate_release_notes: true

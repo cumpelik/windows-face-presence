@@ -1,0 +1,198 @@
+using System.Diagnostics;
+using OpenCvSharp;
+using Windows.Media.Capture;
+using Windows.Media.Capture.Frames;
+using Windows.Media.MediaProperties;
+
+namespace FacePresence.Capture;
+
+/// <summary>
+/// Otevře kameru (IR nebo barevnou) přes WinRT MediaCapture a na vyžádání vrátí aktuální snímek jako Mat (BGR).
+/// U IR kamer vrací přednostně osvětlené snímky (InfraredMediaFrame.IsIlluminated).
+/// </summary>
+public sealed class FrameGrabber : IDisposable
+{
+    private readonly MediaCapture _capture;
+    private readonly MediaFrameReader _reader;
+    private readonly CameraInfo _camera;
+    private TimeSpan? _lastTimestamp;
+    private bool _disposed;
+
+    public CameraInfo Camera => _camera;
+    public string FormatDescription { get; }
+    public string SharingMode { get; }
+    public int IlluminatedFrames { get; private set; }
+    public int DarkFrames { get; private set; }
+    public string? LastPixelFormat { get; private set; }
+    public IReadOnlyList<string> SupportedFormats { get; private set; } = Array.Empty<string>();
+
+    private FrameGrabber(MediaCapture capture, MediaFrameReader reader, CameraInfo camera, string format, string sharing)
+    {
+        _capture = capture;
+        _reader = reader;
+        _camera = camera;
+        FormatDescription = format;
+        SharingMode = sharing;
+    }
+
+    public static async Task<FrameGrabber> OpenAsync(CameraInfo camera, CancellationToken ct = default)
+    {
+        var groups = await MediaFrameSourceGroup.FindAllAsync();
+        var group = groups.FirstOrDefault(g => g.Id == camera.GroupId)
+                    ?? throw new InvalidOperationException("Kamera není připojena: " + camera.DisplayName);
+
+        MediaCapture? capture = null;
+        Exception? lastError = null;
+        var sharing = "";
+        foreach (var mode in new[] { MediaCaptureSharingMode.ExclusiveControl, MediaCaptureSharingMode.SharedReadOnly })
+        {
+            ct.ThrowIfCancellationRequested();
+            var mc = new MediaCapture();
+            try
+            {
+                await mc.InitializeAsync(new MediaCaptureInitializationSettings
+                {
+                    SourceGroup = group,
+                    SharingMode = mode,
+                    MemoryPreference = MediaCaptureMemoryPreference.Cpu,
+                    StreamingCaptureMode = StreamingCaptureMode.Video,
+                });
+                capture = mc;
+                sharing = mode.ToString();
+                break;
+            }
+            catch (Exception ex)
+            {
+                lastError = ex;
+                mc.Dispose();
+            }
+        }
+        if (capture == null)
+            throw new InvalidOperationException("Kameru nelze otevřít: " + lastError?.Message, lastError);
+
+        try
+        {
+            if (!capture.FrameSources.TryGetValue(camera.SourceId, out var source))
+                throw new InvalidOperationException("Zdroj snímků nenalezen: " + camera.SourceId);
+
+            var format = PickFormat(source.SupportedFormats, camera.IsInfrared);
+            if (format != null)
+            {
+                try { await source.SetFormatAsync(format); }
+                catch (Exception ex) { Log.Write("SetFormatAsync selhal (pokračuji s výchozím): " + ex.Message); }
+            }
+
+            var reader = camera.IsInfrared
+                ? await capture.CreateFrameReaderAsync(source)
+                : await capture.CreateFrameReaderAsync(source, MediaEncodingSubtypes.Argb32);
+            reader.AcquisitionMode = MediaFrameReaderAcquisitionMode.Realtime;
+
+            var status = await reader.StartAsync();
+            if (status != MediaFrameReaderStartStatus.Success)
+            {
+                reader.Dispose();
+                throw new InvalidOperationException("Čtení snímků nelze spustit: " + status);
+            }
+
+            var cur = source.CurrentFormat;
+            var desc = $"{cur.Subtype} {cur.VideoFormat.Width}x{cur.VideoFormat.Height} @ {cur.FrameRate.Numerator / Math.Max(1, cur.FrameRate.Denominator)} fps";
+            Log.Write($"Kamera otevřena: {camera.DisplayName} {desc} ({sharing})");
+            var all = source.SupportedFormats
+                .Select(f => $"{f.Subtype} {f.VideoFormat?.Width}x{f.VideoFormat?.Height}@{f.FrameRate.Numerator / Math.Max(1, f.FrameRate.Denominator)}")
+                .Distinct().ToList();
+            return new FrameGrabber(capture, reader, camera, desc, sharing) { SupportedFormats = all };
+        }
+        catch
+        {
+            capture.Dispose();
+            throw;
+        }
+    }
+
+    private static MediaFrameFormat? PickFormat(IReadOnlyList<MediaFrameFormat> formats, bool infrared)
+    {
+        if (formats.Count == 0) return null;
+        static int Rank(string subtype) => subtype.ToUpperInvariant() switch
+        {
+            "NV12" => 0, "YUY2" => 1, "L8" => 0, "L16" => 1, "RGB32" => 2, "ARGB32" => 2, "MJPG" => 5, _ => 3,
+        };
+        return formats
+            .Where(f => f.VideoFormat != null && f.VideoFormat.Width >= 160 && f.VideoFormat.Width <= 1280)
+            .OrderBy(f => Math.Abs((int)f.VideoFormat.Width - 640))
+            .ThenBy(f => Rank(f.Subtype))
+            .FirstOrDefault() ?? formats[0];
+    }
+
+    /// <summary>Vrátí nový (ještě nevrácený) snímek, nebo null po vypršení timeoutu. Volající Mat vlastní.</summary>
+    public async Task<Mat?> GrabAsync(TimeSpan timeout, CancellationToken ct = default)
+    {
+        if (_disposed) return null;
+        var sw = Stopwatch.StartNew();
+        Mat? dark = null;
+        try
+        {
+            while (sw.Elapsed < timeout)
+            {
+                ct.ThrowIfCancellationRequested();
+                using var frame = _reader.TryAcquireLatestFrame();
+                var video = frame?.VideoMediaFrame;
+                var ts = frame?.SystemRelativeTime;
+                if (frame == null || video == null || ts == null || ts == _lastTimestamp)
+                {
+                    await Task.Delay(15, ct);
+                    continue;
+                }
+                _lastTimestamp = ts;
+
+                var bitmap = video.SoftwareBitmap;
+                if (bitmap == null)
+                {
+                    await Task.Delay(15, ct);
+                    continue;
+                }
+                LastPixelFormat = bitmap.BitmapPixelFormat.ToString();
+
+                bool? illuminated = null;
+                if (_camera.IsInfrared)
+                {
+                    try { illuminated = video.InfraredMediaFrame?.IsIlluminated; }
+                    catch { illuminated = null; }
+                }
+
+                var mat = FrameConverter.ToBgr(bitmap);
+                if (illuminated == false)
+                {
+                    DarkFrames++;
+                    dark?.Dispose();
+                    dark = mat;
+                    // Osvětlené snímky se u IR střídají s neosvětlenými; chvíli počkáme na osvětlený.
+                    if (sw.Elapsed > TimeSpan.FromMilliseconds(700))
+                    {
+                        var r = dark; dark = null; return r;
+                    }
+                    await Task.Delay(10, ct);
+                    continue;
+                }
+                if (illuminated == true) IlluminatedFrames++;
+                dark?.Dispose(); dark = null;
+                return mat;
+            }
+            var last = dark; dark = null;
+            return last;
+        }
+        finally
+        {
+            dark?.Dispose();
+        }
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        try { _reader.StopAsync().AsTask().Wait(2000); } catch { }
+        try { _reader.Dispose(); } catch { }
+        try { _capture.Dispose(); } catch { }
+        Log.Write("Kamera uvolněna: " + _camera.DisplayName);
+    }
+}
