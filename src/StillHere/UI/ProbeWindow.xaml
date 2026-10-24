@@ -1,0 +1,45 @@
+<ui:FluentWindow x:Class="StillHere.UI.ProbeWindow"
+                 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+                 xmlns:loc="clr-namespace:StillHere.Localization"
+                 Title="{Binding [probe.title], Source={x:Static loc:Loc.I}}"
+                 Width="900" Height="640" MinWidth="600" MinHeight="400"
+                 WindowStartupLocation="CenterOwner"
+                 ExtendsContentIntoTitleBar="True"
+                 WindowBackdropType="Mica">
+    <ui:FluentWindow.Resources>
+        <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+            <Setter Property="BorderBrush" Value="{DynamicResource ControlStrongStrokeColorDefaultBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="12,6" />
+            <Style.Triggers>
+                <Trigger Property="Appearance" Value="Primary">
+                    <Setter Property="BorderBrush" Value="Transparent" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </ui:FluentWindow.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <ui:TitleBar x:Name="TitleBar" Title="{Binding [probe.title], Source={x:Static loc:Loc.I}}" />
+        <TextBlock Grid.Row="1" Margin="16,4,16,12" TextWrapping="Wrap" Text="{Binding [probe.intro], Source={x:Static loc:Loc.I}}" />
+        <ui:Card Grid.Row="2" Margin="16,0" Padding="0">
+            <TextBox x:Name="Output" IsReadOnly="True" FontFamily="Consolas" FontSize="13" BorderThickness="0" Background="Transparent"
+                     TextWrapping="NoWrap" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" />
+        </ui:Card>
+        <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="16,12,16,16">
+            <ui:Button x:Name="RunButton" Appearance="Primary" Click="Run_Click" Content="{Binding [btn.run], Source={x:Static loc:Loc.I}}">
+                <ui:Button.Icon>
+                    <ui:SymbolIcon Symbol="Stethoscope24" />
+                </ui:Button.Icon>
+            </ui:Button>
+            <ui:Button Margin="8,0,0,0" Click="Copy_Click" Content="{Binding [btn.copy], Source={x:Static loc:Loc.I}}" />
+        </StackPanel>
+    </Grid>
+</ui:FluentWindow>

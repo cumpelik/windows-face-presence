@@ -85,8 +85,8 @@ def save_ico(img, path, sizes):
     frames[0].save(path, format="ICO", sizes=[(z, z) for z in sizes], append_images=frames[1:])
 
 app = build(((67, 56, 202), (8, 145, 178)), dot=(46, 160, 67))
-app.resize((256, 256), Image.LANCZOS).save(f"{OUT}/FacePresence-256.png")
-save_ico(app, f"{OUT}/FacePresence.ico", [256, 128, 64, 48, 40, 32, 24, 20, 16])
+app.resize((256, 256), Image.LANCZOS).save(f"{OUT}/StillHere-256.png")
+save_ico(app, f"{OUT}/StillHere.ico", [256, 128, 64, 48, 40, 32, 24, 20, 16])
 
 states = {
     "present": (46, 160, 67),

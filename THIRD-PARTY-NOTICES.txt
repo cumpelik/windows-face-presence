@@ -1,8 +1,8 @@
-Face Presence - third-party notices
+Still Here - third-party notices
 ===================================
 
-Face Presence is licensed under the MIT License (see LICENSE). The released
-FacePresence.exe bundles the components listed below. Each is used under its own
+Still Here is licensed under the MIT License (see LICENSE). The released
+StillHere.exe bundles the components listed below. Each is used under its own
 license; the full license texts follow the summary.
 
 Summary
@@ -34,11 +34,11 @@ Windows SDK .NET projection       (from SDK)       Microsoft Windows SDK license
 Notes
 -----
 * The libraries marked "(in OpenCV)" / "(in runtime)" are statically linked into
-  OpenCvSharpExtern.dll by the OpenCvSharp4.runtime.win package. Face Presence
+  OpenCvSharpExtern.dll by the OpenCvSharp4.runtime.win package. Still Here
   only uses the OpenCV core, imgproc, imgcodecs, objdetect and dnn modules; OCR,
   video I/O and the other bundled code paths are never called.
 * The FFmpeg video I/O plugin (opencv_videoio_ffmpeg, LGPL) shipped in the same
-  package is deliberately excluded from the Face Presence build.
+  package is deliberately excluded from the Still Here build.
 * The EXE bundles the .NET 8 runtime with WPF and Windows Forms. Their own third-party notices:
   https://github.com/dotnet/runtime/blob/release/8.0/THIRD-PARTY-NOTICES.TXT,
   https://github.com/dotnet/wpf/blob/release/8.0/THIRD-PARTY-NOTICES.TXT and

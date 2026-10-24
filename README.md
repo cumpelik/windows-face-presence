@@ -1,15 +1,17 @@
-<p align="center"><img src="docs/icon.png" width="96" alt="Face Presence icon"></p>
+<p align="center"><img src="docs/icon.png" width="96" alt="Still Here icon"></p>
 
-<h1 align="center">Face Presence</h1>
+<h1 align="center">Still Here</h1>
+
+<p align="center"><b>Windows antilock that only works while you are at the computer</b></p>
 
 <p align="center">
 Keeps Windows unlocked while <b>you</b> sit in front of the camera, and lets it lock normally when you leave.<br>
 Local face recognition, Windows Hello IR camera supported, one EXE with nothing to install, no cloud.
 </p>
 
-<p align="center"><a href="README.cs.md">Česky</a></p>
+<p align="center"><a href="https://github.com/cumpelik/windows-still-here/releases/latest/download/StillHere.exe"><b>⬇ Download StillHere.exe</b></a> · <a href="README.cs.md">Česky</a></p>
 
-<p align="center"><img src="docs/screenshot.png" width="760" alt="Face Presence main window"></p>
+<p align="center"><img src="docs/screenshot.png" width="760" alt="Still Here main window"></p>
 
 ---
 
@@ -17,12 +19,12 @@ Local face recognition, Windows Hello IR camera supported, one EXE with nothing 
 
 Short idle lock timeouts are good security, but annoying when you are reading, thinking or on a call without touching
 the keyboard. "Mouse jiggler" tools fix the annoyance by removing the security: the PC stays unlocked even when you walk
-away. Face Presence defers the lock **only while it recognizes your face**. When you leave, Windows locks exactly as
+away. Still Here defers the lock **only while it recognizes your face**. When you leave, Windows locks exactly as
 configured.
 
 ## Features
 
-- **Never disturbs video calls.** While another app uses the camera, Face Presence pauses and Windows lock as usual.
+- **Never disturbs video calls.** While another app uses the camera, Still Here pauses and Windows lock as usual.
 - **Recognizes you, not just any face.** You scan your face once; other people in front of the camera do not keep the PC unlocked.
 - **Windows Hello IR camera preferred.** Works in the dark and is harder to fool with a picture on a screen. A regular
   webcam is used when no IR camera is available.
@@ -48,7 +50,7 @@ configured.
      only way to defer the *Interactive logon: Machine inactivity limit* policy, which ignores everything except input.
 5. When you leave, the camera fails, you pause the app, the session locks or the app exits, all of this stops and
    Windows locks on its own schedule. On lock the camera is released so Windows Hello can use it.
-6. While another app uses a camera (a video call), Face Presence steps aside: it releases its camera and stops
+6. While another app uses a camera (a video call), Still Here steps aside: it releases its camera and stops
    deferring the lock, so the call is never disturbed and Windows behaves exactly as without the app.
 
 ## Requirements
@@ -59,7 +61,7 @@ configured.
 
 ## Getting started
 
-1. Download `FacePresence-<version>-win-x64.exe` from [Releases](../../releases) and run it. It is a single file with
+1. Download [`StillHere.exe`](https://github.com/cumpelik/windows-still-here/releases/latest/download/StillHere.exe) (always the latest release) and run it. It is a single file with
    everything inside – no installation, no .NET to install. The first start takes a few seconds while it unpacks.
 2. The IR camera is selected automatically when present. Click **Scan my face** and look at the camera for about 5 s.
 3. Watch the score in the preview: your face should be clearly above the threshold (0.40 by default). If someone
@@ -68,15 +70,15 @@ configured.
 5. **Diagnostics…** verifies on your machine that the IR camera delivers frames, that the simulated input resets the
    idle timer, and which lock policies apply.
 
-Closing the window only hides it to the tray. Run the EXE again or double-click the tray icon to bring it back.
+Closing the window only hides it to the tray. Run the EXE again or double-click the tray icon to bring it back. To update, download the new `StillHere.exe` over the old one.
 
 ## Security and privacy
 
-- Face Presence never changes system security policies and never unlocks Windows. It can only *defer* an automatic
+- Still Here never changes system security policies and never unlocks Windows. It can only *defer* an automatic
   idle lock while you are recognized.
 - **There is no liveness detection.** A good enough image of your face in front of the camera can keep the PC
-  unlocked. The IR camera makes this harder, not impossible. Do not use Face Presence where that risk is not acceptable.
-- Your face is stored as numeric face embeddings (no photos) in `%LOCALAPPDATA%\FacePresence\settings.json`,
+  unlocked. The IR camera makes this harder, not impossible. Do not use Still Here where that risk is not acceptable.
+- Your face is stored as numeric face embeddings (no photos) in `%LOCALAPPDATA%\StillHere\settings.json`,
   unencrypted, readable by your Windows account. Nothing is sent anywhere.
 - On managed devices the idle lock is usually a company policy. Make sure your organization allows tools like this.
 
@@ -91,8 +93,8 @@ Closing the window only hides it to the tray. Run the EXE again or double-click 
 ## Building
 
 ```
-dotnet build src/FacePresence/FacePresence.csproj -c Release
-pwsh build/windows/build.ps1 -Version 0.1.0     # -> out/FacePresence-0.1.0-win-x64.exe
+dotnet build src/StillHere/StillHere.csproj -c Release
+pwsh build/windows/build.ps1 -Version 0.1.0     # -> out/StillHere.exe
 ```
 
 The build also works on Linux/macOS (`EnableWindowsTargeting`), running requires Windows. `build.ps1` signs the EXE

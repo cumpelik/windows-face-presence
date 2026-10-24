@@ -17,5 +17,5 @@ jobs:
         run: pwsh build/windows/build.ps1 -Version 0.0.0
       - uses: actions/upload-artifact@v4
         with:
-          name: FacePresence-dev-win-x64
-          path: out/FacePresence-*.exe*
+          name: StillHere-dev-win-x64
+          path: out/StillHere.exe*

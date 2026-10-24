@@ -1,4 +1,4 @@
-# Builds out/FacePresence-<version>-win-x64.exe (single file with the .NET runtime inside) and optionally signs it with
+# Builds out/StillHere.exe (single file with the .NET runtime inside) and optionally signs it with
 # Azure Artifact Signing (Trusted Signing). Signing is enabled by these environment variables:
 #   ARTIFACT_SIGNING_ENDPOINT   endpoint of the account's region, e.g. https://weu.codesigning.azure.net
 #   ARTIFACT_SIGNING_ACCOUNT    signing account name
@@ -11,10 +11,10 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $root = Resolve-Path "$PSScriptRoot\..\.."
-$project = Join-Path $root 'src\FacePresence\FacePresence.csproj'
+$project = Join-Path $root 'src\StillHere\StillHere.csproj'
 $out = Join-Path $root 'out'
 $publish = Join-Path $out 'publish\win-x64'
-$target = Join-Path $out "FacePresence-$Version-win-x64.exe"
+$target = Join-Path $out 'StillHere.exe' # no version in the name: a new download replaces the old one
 
 function Setting([string] $name) {
     $value = [Environment]::GetEnvironmentVariable($name)
@@ -56,12 +56,12 @@ if (Setting 'ARTIFACT_SIGNING_ACCOUNT') {
     Write-Host "== ARTIFACT_SIGNING_ACCOUNT not set – nothing is signed"
 }
 
-Write-Host "== Publishing FacePresence $Version (win-x64, self-contained single file)"
+Write-Host "== Publishing Still Here $Version (win-x64, self-contained single file)"
 if (Test-Path $publish) { Remove-Item -Recurse -Force $publish }
 New-Item -ItemType Directory -Force $out | Out-Null
 dotnet publish $project -c Release -r win-x64 -o $publish -nologo "-p:Version=$Version" @signArgs
 if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed" }
-Copy-Item (Join-Path $publish 'FacePresence.exe') $target -Force
+Copy-Item (Join-Path $publish 'StillHere.exe') $target -Force
 
 if ($signArgs.Count -gt 0) {
     & $signScript -Path $target @signParams

@@ -1,6 +1,6 @@
 name: Release
 
-# Tag v1.2.3 -> FacePresence-1.2.3-win-x64.exe as a GitHub Release.
+# Tag v1.2.3 -> StillHere.exe as GitHub Release v1.2.3 (stable download URL: releases/latest/download/StillHere.exe).
 # Signing settings live in the "release" environment (Settings -> Environments -> release), which only tags v* may use:
 #   variables: ARTIFACT_SIGNING_ENDPOINT, ARTIFACT_SIGNING_ACCOUNT, ARTIFACT_SIGNING_PROFILE, AZURE_TENANT_ID, AZURE_CLIENT_ID
 #   secret:    AZURE_CLIENT_SECRET
@@ -38,8 +38,8 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           files: |
-            out/FacePresence-*.exe
-            out/FacePresence-*.exe.sha256
+            out/StillHere.exe
+            out/StillHere.exe.sha256
             LICENSE
             THIRD-PARTY-NOTICES.txt
           generate_release_notes: true
